@@ -1,0 +1,176 @@
+[
+  {
+    "login": "oleg",
+    "pass": "oleg1996",
+    "role": "admin",
+    "balance": 0
+  },
+  {
+    "login": "Artem",
+    "pass": "235460",
+    "role": "tech",
+    "balance": 0
+  },
+  {
+    "login": "Artem2",
+    "pass": "095621",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "Artem3",
+    "pass": "844421",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "VladK",
+    "pass": "962124",
+    "role": "admin",
+    "balance": 0
+  },
+  {
+    "login": "Chikago",
+    "pass": "952345",
+    "role": "tech",
+    "balance": 0
+  },
+  {
+    "login": "Maloy",
+    "pass": "321445",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "Pasha",
+    "pass": "929223",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "Bogdan",
+    "pass": "953225",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "Kirill",
+    "pass": "2343255",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "Sonya2",
+    "pass": "243556",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "Maks",
+    "pass": "2495344",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "Nikita",
+    "pass": "102934",
+    "role": "tech",
+    "balance": 0
+  },
+  {
+    "login": "Sonya",
+    "pass": "345436",
+    "role": "kupat",
+    "balance": 0
+  },
+  {
+    "login": "Sonya2Kupat",
+    "pass": "5765873",
+    "role": "kupat",
+    "balance": 0
+  },
+  {
+    "login": "Murat",
+    "pass": "8752565",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "David",
+    "pass": "234567",
+    "role": "kupat",
+    "balance": 0
+  },
+  {
+    "login": "DavaHol",
+    "pass": "23432432",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "AlinaKupat",
+    "pass": "12395190",
+    "role": "kupat",
+    "balance": 0
+  },
+  {
+    "login": "Alina2Kupat",
+    "pass": "43543553",
+    "role": "kupat",
+    "balance": 0
+  },
+  {
+    "login": "AlinaB",
+    "pass": "12395190",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "PolinaKupat",
+    "pass": "324324578",
+    "role": "kupat",
+    "balance": 0
+  },
+  {
+    "login": "PolinaB",
+    "pass": "324324578",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "Alina2B",
+    "pass": "43543553",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "SonyaB",
+    "pass": "345436",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "KatyaB",
+    "pass": "34324248",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "login": "KatyaK",
+    "pass": "34324248",
+    "role": "kupat",
+    "balance": 0
+  },
+  {
+    "login": "1",
+    "pass": "1",
+    "role": "kupat",
+    "balance": 0
+  },
+  {
+    "login": "11",
+    "pass": "11",
+    "role": "user",
+    "balance": 0
+  }
+]
