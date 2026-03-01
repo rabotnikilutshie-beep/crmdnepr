@@ -159,9 +159,13 @@
 <div id="client-area" style="margin-top:50px;">
 <button class="btn-blue" onclick="nextClient()" style="padding:15px 30px; font-size:18px;">НАЧАТЬ ОБЗВОН</button>
 </div>
+<div class="hidden" id="cats-easter" style="margin-top:14px; border-top:1px solid #30363d; padding-top:10px;">
+  <img src="https://i.gifer.com/Aw.gif" alt="Котики" style="max-width:100%; max-height:340px; border-radius:10px; border:1px solid #30363d; object-fit:contain;" />
 </div>
-<div class="card">
+</div>
+<div class="card" style="position:relative;">
 <textarea id="note" placeholder="Заметка к звонку..."></textarea>
+<button onclick="toggleCatsEaster()" style="position:absolute; right:10px; bottom:8px; font-size:12px; color:#000; background:transparent; border:none; padding:2px 4px; margin:0;">котики</button>
 </div>
 </div>
 <div class="hidden card" id="tab-create-order">
@@ -785,6 +789,7 @@ function setupNav() {
         html += `<button onclick="openTab('kupat')">🏷 Купат</button>`;
     }
     if(r === 'kupat') {
+		html += `<button onclick="openTab('work')">📞 Обзвон</button>`;
 		html += `<button onclick="openTab('kupat')">🏷 Входящие Купат</button>`;
         html += `<button onclick="openTab('kupat-my-clients')">👴 Мои клиенты</button>`;
         html += `<button onclick="openTab('kupat-my-transfers')">📤 Мои передачи</button>`;
@@ -881,8 +886,10 @@ async function nextClient() {
             <button class="btn-blue" onclick="sendResult('АВТО')">АВТО</button>
             <button class="btn-pur" onclick="sendResult('ИВРИТ')">ИВРИТ</button>
             <button class="btn-red" onclick="sendResult('ОТКАЗ')">ОТКАЗ</button>
-            <button style="background:#e67e22" onclick="sendResult('НА КУПАТ')">НА КУПАТ</button>
-            <button style="background:#238636" onclick="sendResult('ПЕРЕДАЛ')">ПЕРЕДАЛ</button>
+            ${me.role === 'kupat'
+                ? `<button style="background:#238636" onclick="sendResult('НА БАНК')">НА БАНК</button>`
+                : `<button style="background:#e67e22" onclick="sendResult('НА КУПАТ')">НА КУПАТ</button>
+                   <button style="background:#238636" onclick="sendResult('ПЕРЕДАЛ')">ПЕРЕДАЛ</button>`}
         </div>
         <div style="margin-top:10px"><button class="btn-vio" onclick="addCurrentToNotes()" style="width:100%; padding:12px; font-size:14px;">В ЗАМЕТКИ</button></div>
 		<div style="margin-top:8px"><button class="btn-gray" onclick="addCurrentToCallbacks()" style="width:100%; padding:10px; font-size:14px;">🔁 В ПЕРЕЗВОН</button></div>
@@ -890,12 +897,18 @@ async function nextClient() {
     document.getElementById('note').value = buildCallTemplateFromRow(curClient.row || []);
 }
 
+function toggleCatsEaster(){
+    const box = document.getElementById('cats-easter');
+    if(!box) return;
+    box.classList.toggle('hidden');
+}
+
 async function sendResult(status) {
     trackEvent(status, curClient?.phone || '', document.getElementById('note')?.value || '');
     const note = document.getElementById('note').value;
     await fetch('/api/save-result', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ status, user: me.login, phone: curClient.phone, name: curClient.name, note })
+        body: JSON.stringify({ status, user: me.login, role: me.role, phone: curClient.phone, name: curClient.name, note })
     });
     nextClient(); // Сразу следующий
 }
@@ -1256,12 +1269,14 @@ async function loadKupatMyClients() {
     const data = await r.json();
     const mine = (Array.isArray(data) ? data : []).filter(o => o.kupatUser === me.login);
 	window._kupatAllCache = Array.isArray(data) ? data : [];
+    window._kupatMyClientsCache = mine;
 
 
     const active = mine.filter(o => o.status === 'kupat_work');
     const archive = mine.filter(o => ['kupat_ndz','kupat_auto','kupat_ivrit','kupat_refuse','kupat_final'].includes(o.status));
 
     const renderMine = (o) => renderCompactClientCard(o, `
+	    ${(me.role === 'kupat' || me.role === 'admin') ? `<button class="btn-red" title="Удалить карточку" onclick="deleteKupatClient(${o.id})">✕</button>` : ''}
         ${o.status === 'kupat_work' ? `
             <button class="btn-yel" onclick="kupatAction(${o.id}, 'kupat_ndz')">НДЗ</button>
             <button class="btn-blue" onclick="kupatAction(${o.id}, 'kupat_auto')">АВТО</button>
@@ -1503,10 +1518,23 @@ async function finalOrder(id) {
 
 async function kupatAction(id, status) {
     let note = prompt("Заметка:");
-    await fetch('/api/kupat/action', {
+    if(note === null) return;
+    if(status === 'kupat_refuse' && !String(note || '').trim()) {
+        alert('Для отказа нужен комментарий.');
+        return;
+    }
+
+    const r = await fetch('/api/kupat/action', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ id, status, note, user: me.login })
     });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok || !d.success) {
+        const err = d.error || r.status;
+        if(err === 'not_found') return alert('Карточка не найдена. Обнови вкладку.');
+        if(err === 'refuse_note_required') return alert('Для отказа нужен комментарий.');
+        return alert('Не удалось изменить статус: ' + err);
+    }
     await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
 }
 
@@ -1522,10 +1550,39 @@ async function kupatTakeInWork(id, selectId) {
 async function kupatTakeRefuse(id, selectId) {
     const assignee = document.getElementById(selectId)?.value || me.login;
     let note = prompt("Причина отказа:");
-    await fetch('/api/kupat/action', {
+    if(note === null) return;
+    note = String(note || '').trim();
+    if(!note) {
+        alert('Для отказа нужен комментарий.');
+        return;
+    }
+    const r = await fetch('/api/kupat/action', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ id, status: 'kupat_refuse', user: assignee, note: note || 'Отказ' })
+        body: JSON.stringify({ id, status: 'kupat_refuse', user: assignee, note })
     });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok || !d.success) {
+        const err = d.error || r.status;
+        if(err === 'not_found') return alert('Карточка не найдена. Обнови вкладку.');
+        if(err === 'refuse_note_required') return alert('Для отказа нужен комментарий.');
+        return alert('Не удалось отправить отказ: ' + err);
+    }
+    await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
+}
+
+async function deleteKupatClient(id){
+    if(!confirm('Удалить карточку клиента?')) return;
+    const r = await fetch('/api/kupat/delete-self', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, login: me.login, role: me.role })
+    });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok || !d.success) {
+        const err = d.error || r.status;
+        if(err === 'not_found') return alert('Карточка уже удалена или не найдена.');
+        if(err === 'forbidden') return alert('Нет прав удалить эту карточку.');
+        return alert('Не удалось удалить карточку: ' + err);
+    }
     await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
 }
 

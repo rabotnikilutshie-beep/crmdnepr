@@ -489,7 +489,7 @@ app.post('/api/notes/delete', (req, res) => {
 
 // --- ЛОГИКА ОБЗВОНА И ЛОГОВ ---
 app.post('/api/save-result', (req, res) => {
-  const { status, user, phone, note, name } = req.body;
+  const { status, user, role, phone, note, name } = req.body;
   const time = nowUtc2Str();
 
   // 1) Пишем в лог
@@ -539,6 +539,19 @@ if (st === 'AUTO' || st === 'АВТО') {
       closer: null,
     });
     saveData(DB_FILES.kupat, kupatOrders);
+  } else if (status === 'НА БАНК' && role === 'kupat') {
+    orders.push({
+      id: Date.now(),
+      operator: user,
+      clientName: name,
+      phone,
+      details: note ?? '',
+      time,
+      status: 'closer',
+      tech: null,
+      closer: null,
+    });
+    saveData(DB_FILES.orders, orders);
   }
 
   res.json({ success: true });
@@ -1006,15 +1019,23 @@ app.get('/api/kupat/list', (req, res) => {
 
 app.post('/api/kupat/action', (req, res) => {
   const { id, status, note, user } = req.body;
-  const order = kupatOrders.find((o) => o.id === id);
-  if (order) {
-    order.status = status;
-    order.kupatUser = user; // кто обработал/передал купат
-    if (status === 'kupat_to_closer' && !order.kupatToCloserAt) order.kupatToCloserAt = nowUtc2Str();
-    if (note) order.kupatNote = note;
-    saveData(DB_FILES.kupat, kupatOrders);
+  const order = kupatOrders.find((o) => String(o.id) === String(id));
+  if (!order) return res.status(404).json({ success: false, error: 'not_found' });
+
+  if (status === 'kupat_refuse') {
+    const refusalNote = String(note || '').trim();
+    if (!refusalNote) {
+      return res.status(400).json({ success: false, error: 'refuse_note_required' });
+    }
   }
-  res.json({ success: true });
+
+  order.status = status;
+  order.kupatUser = user; // кто обработал/передал купат
+  if (status === 'kupat_to_closer' && !order.kupatToCloserAt) order.kupatToCloserAt = nowUtc2Str();
+  if (typeof note !== 'undefined' && String(note).trim()) order.kupatNote = String(note).trim();
+  saveData(DB_FILES.kupat, kupatOrders);
+
+  return res.json({ success: true });
 });
 
 app.post('/api/kupat/assign-closer', (req, res) => {
@@ -1074,25 +1095,42 @@ app.post('/api/kupat/comment', upload.single('file'), (req, res) => {
 
 app.post('/api/kupat/final', (req, res) => {
   const { id, text, color, closer } = req.body;
-  const order = kupatOrders.find((o) => o.id === id);
-  if (order) {
-    order.status = 'kupat_final';
-    order.closer = closer;
-    order.finalText = text;
-    order.finalColor = color;
-    saveData(DB_FILES.kupat, kupatOrders);
-  }
-  res.json({ success: true });
+  const order = kupatOrders.find((o) => String(o.id) === String(id));
+  if (!order) return res.status(404).json({ success: false, error: 'not_found' });
+
+  order.status = 'kupat_final';
+  order.closer = closer;
+  order.finalText = text;
+  order.finalColor = color;
+  saveData(DB_FILES.kupat, kupatOrders);
+
+  return res.json({ success: true });
+});
+
+app.post('/api/kupat/delete-self', (req, res) => {
+  const { id, login, role } = req.body || {};
+  if (!id || !login || !role) return res.status(400).json({ success: false, error: 'bad_request' });
+
+  const idx = kupatOrders.findIndex((o) => String(o.id) === String(id));
+  if (idx < 0) return res.status(404).json({ success: false, error: 'not_found' });
+
+  const order = kupatOrders[idx];
+  const allowed = role === 'admin' || (role === 'kupat' && String(order.kupatUser || '') === String(login));
+  if (!allowed) return res.status(403).json({ success: false, error: 'forbidden' });
+
+  kupatOrders.splice(idx, 1);
+  saveData(DB_FILES.kupat, kupatOrders);
+  return res.json({ success: true });
 });
 
 // --- УПРАВЛЕНИЕ (Админ) ---
 app.post('/api/delete-item', (req, res) => {
   const { id, type } = req.body;
   if (type === 'orders') {
-    orders = orders.filter((o) => o.id !== id);
+    orders = orders.filter((o) => String(o.id) !== String(id));
     saveData(DB_FILES.orders, orders);
   } else {
-    kupatOrders = kupatOrders.filter((o) => o.id !== id);
+    kupatOrders = kupatOrders.filter((o) => String(o.id) !== String(id));
     saveData(DB_FILES.kupat, kupatOrders);
   }
   res.json({ success: true });
