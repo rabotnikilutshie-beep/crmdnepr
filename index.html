@@ -1,0 +1,2650 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/>
+<title>CRM Dnepr</title>
+<style>
+    /* Dark Theme Core */
+    body { margin:0; padding:15px; background: radial-gradient(1200px 800px at 20% 10%, #1b2a3a 0%, rgba(27,42,58,0) 60%), radial-gradient(900px 600px at 80% 0%, #2a1b3a 0%, rgba(42,27,58,0) 55%), linear-gradient(135deg, #0b0f14 0%, #0e1117 40%, #070a0f 100%); color:#e6e6e6; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height:100vh; }
+
+    body:before { content:""; position:fixed; inset:0; pointer-events:none; background: radial-gradient(900px 500px at 50% -10%, rgba(255,255,255,0.06), rgba(255,255,255,0) 60%); mix-blend-mode: screen; opacity:.45; }
+
+    
+    /* Layout */
+    .card { background: rgba(22,27,34,0.92); backdrop-filter: blur(6px); padding:15px; border-radius:12px; margin-bottom:10px; border:1px solid #30363d; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+    .layout { display:grid; grid-template-columns: 1fr 400px; gap:15px; }
+    .hidden { display: none !important; }
+    
+    /* Inputs & Textareas */
+    input, select, textarea { background:#0d1117; border:1px solid #30363d; color:#fff; padding:8px; border-radius:6px; width:100%; box-sizing: border-box; margin-bottom:5px; }
+    textarea { height: 350px; resize: vertical; }
+
+    /* Buttons */
+    button { cursor:pointer; background:#238636; color:#fff; border:none; border-radius:6px; padding:8px 14px; font-weight:600; transition:0.2s; margin-right:5px; margin-bottom:5px; }
+    button:hover { opacity: 0.9; }
+    .btn-red { background: #da3633; }
+    .btn-yel { background: #d29922; color: #000; }
+    .btn-blue { background: #2f81f7; }
+    .btn-pur { background: #8957e5; }
+    .btn-gray { background: #21262d; border: 1px solid #30363d; }
+    
+    /* Status Badges & Items */
+    .order-item { background: rgba(33,38,45,0.92); padding: 18px; border-radius: 12px; margin-bottom: 12px; border-left: 6px solid #238636; position: relative; min-height: 170px; }
+    .order-item.return { border-left-color: #da3633; }
+    .order-item.kupat { border-left-color: #d29922; }
+    .order-grid { display:grid; grid-template-columns: 1fr; gap:10px; }
+    .kanban-board { display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:12px; align-items:start; }
+    .kanban-col { background: rgba(13,17,23,0.8); border:1px solid #30363d; border-radius:12px; padding:10px; min-height:120px; }
+    .kanban-col-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+    .kanban-col-title { font-size:13px; font-weight:800; color:#c9d1d9; }
+    .kanban-col-count { font-size:11px; font-weight:700; color:#8b949e; background:#161b22; border:1px solid #30363d; border-radius:999px; padding:2px 8px; }
+    .kanban-col-body { display:flex; flex-direction:column; gap:10px; }
+    .kanban-col-empty { font-size:12px; color:#8b949e; border:1px dashed #30363d; border-radius:10px; padding:10px; text-align:center; }
+    .compact-card { 
+      padding:14px;
+      min-height:auto;
+      border-left-width:6px;
+      border-radius:12px;
+      background: rgba(33,38,45,0.92);
+      border:1px solid #30363d;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      color:#e6edf3;
+    }
+    .compact-card .order-head { margin-bottom:8px; }
+    .compact-card .order-title { color:#e6edf3; font-size:18px; font-weight:800; line-height:1.2; letter-spacing:0.2px; }
+    .compact-card .order-phone { color:#9ecbff; font-size:15px; font-weight:700; }
+    .compact-card .pillbar { margin-top:6px; }
+    .compact-card .pill { font-size:12px; padding:4px 8px; border-color:#30363d; background:#161b22; color:#e6edf3; }
+    .compact-card .pill small { color:#8b949e; }
+    .compact-card .pill .who { color:#e6edf3; }
+    .compact-card .card-meta { display:grid; grid-template-columns: 1fr auto; gap:6px 10px; border-top:1px solid #30363d; border-bottom:1px solid #30363d; margin-top:8px; padding:10px 0; }
+    .compact-card .card-meta .k { color:#8b949e; font-size:12px; }
+    .compact-card .card-meta .v { color:#e6edf3; font-size:13px; font-weight:700; text-align:right; }
+    .compact-card .card-actions { display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:8px; }
+    .compact-card .card-actions .label { font-size:14px; color:#c9d1d9; font-weight:700; }
+    .compact-card .card-actions .action-buttons { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+    .compact-card .card-call { display:inline-block; background:#2f81f7; color:#fff; padding:8px 12px; border-radius:10px; text-decoration:none; font-size:12px; font-weight:800; }
+    .compact-comment-wrap { margin-top:8px; }
+    .stacked-kanban { display:flex; flex-direction:column; gap:12px; }
+    .order-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .order-title { font-size:18px; font-weight:800; letter-spacing:0.2px; }
+    .order-phone { font-size:16px; font-weight:700; color:#9ecbff; }
+    .pillbar { display:flex; flex-wrap:wrap; gap:8px; }
+    .pill { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-size:13px; font-weight:800; border:1px solid #30363d; background:#161b22; }
+    .pill small { font-size:11px; font-weight:700; color:#8b949e; }
+    .pill .who { color:#e6e6e6; }
+    .comment-box { background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:10px; }
+    .comment-box textarea { height: 84px; margin:0; }
+    .comment-list { display:flex; flex-direction:column; gap:8px; }
+    .comment { border:1px solid rgba(255,255,255,0.08); background:rgba(13,17,23,0.65); padding:8px 10px; border-radius:10px; }
+    .comment .meta { font-size:11px; color:#8b949e; margin-bottom:4px; }
+    .comment .txt { white-space:pre-wrap; font-size:13px; }
+    .kvcol { display:grid; grid-template-columns: 120px 1fr; gap:10px; }
+    .kvcol .k { color:#8b949e; font-size:12px; }
+    .kvcol .v { font-size:13px; white-space:pre-wrap; }
+    .badge { display:inline-block; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold; background:#30363d; }
+    
+    /* Tables */
+    table { width:100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border: 1px solid #30363d; padding: 8px; text-align: left; }
+    tr:nth-child(even) { background: #161b22; }
+    .right { text-align: right; }
+    .tableWrap { width:100%; overflow:auto; border-radius:12px; border:1px solid #30363d; }
+    .tbl { min-width: 980px; }
+    
+    /* Call Action Grid */
+    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
+    .sip-btn { display:block; background:#2f81f7; color:white; text-align:center; padding:15px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:18px; margin-bottom:15px; }
+
+    /* Income calculator helpers */
+    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    @media (max-width: 980px){ .grid2{ grid-template-columns:1fr; } }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0; }
+    .row label { color:#c9d1d9; font-size:13px; min-width:160px; }
+    .row input { width: 220px; max-width: 100%; }
+    .kv { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+    .kv:last-child { border-bottom:0; }
+
+    .sheet-embed-wrap{ margin-top:16px; }
+    .sheet-embed-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+    .sheet-embed-frame{ width:100%; min-height:640px; border:1px solid #30363d; border-radius:12px; background:#0d1117; }
+
+    .muted{ color: rgba(230,230,230,0.7); }
+    .bigNum{ font-size:28px; font-weight:800; }
+
+.modal.hidden{display:none !important;}
+.modal{position:fixed; inset:0; z-index:9999;}
+.modal-backdrop{position:absolute; inset:0; background:rgba(0,0,0,0.55); backdrop-filter: blur(2px);}
+.modal-card{position:relative; max-width:520px; margin:8vh auto; background:rgba(13,17,23,0.96); border:1px solid #30363d; border-radius:16px; padding:14px; box-shadow: 0 20px 60px rgba(0,0,0,0.55);}
+.btn-vio{background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; font-weight:900;}
+.btn-vio:hover{filter:brightness(1.05);}
+.db-meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px;}
+.db-meta-item{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px;}
+.db-meta-item .k{font-size:11px;color:#8b949e;}
+.db-meta-item .v{font-size:14px;font-weight:700;word-break:break-word;}
+.db-kanban{display:grid;grid-template-columns:repeat(3,minmax(260px,1fr));gap:12px;align-items:flex-start;}
+.db-col{background:rgba(13,17,23,0.85);border:1px solid #30363d;border-radius:12px;padding:10px;}
+.db-col h4{margin:0 0 8px 0;font-size:14px;}
+@media (max-width: 1100px){.db-kanban{grid-template-columns:1fr;}}
+
+.auth-shell{max-width:360px; margin:220px auto 0; display:flex; flex-direction:column; align-items:center; gap:16px;}
+.auth-gif-wrap{width:100%; display:flex; justify-content:center;}
+.auth-gif{width:240px; max-width:100%; border-radius:12px; border:1px solid #30363d; box-shadow:0 10px 30px rgba(0,0,0,.45); object-fit:cover; background:#000;}
+#auth-box{max-width:320px; width:100%; margin:0 auto; text-align:center;}
+@media (max-height: 900px){ .auth-shell{ margin-top:140px; } }
+@media (max-width: 560px){ .auth-shell{ margin-top:90px; } .auth-gif{ width:200px; } }
+</style>
+</head>
+<body>
+<div class="auth-shell" id="auth-shell">
+<div class="auth-gif-wrap">
+<img alt="Ожидание авторизации" class="auth-gif" src="https://reibert.info/media/gifki-gitler-chaj-163126-gif.394052/full?d=1457731364"/>
+</div>
+<div class="card" id="auth-box">
+<h2>CRM Dnipro</h2>
+<input id="logIn" placeholder="Логин" type="text"/>
+<input id="pasIn" placeholder="Пароль" type="password"/>
+<button id="btnLogin" style="width:100%; margin-top:10px">ВОЙТИ</button>
+<div id="loginMsg" style="margin-top:10px; font-size:13px; color:#ffb3b3; display:none"></div>
+</div>
+</div>
+<div class="hidden" id="main-ui">
+<div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+<div>👤 <b id="uLabel"></b> <span class="badge" id="rLabel"></span> <span id="soundHint" style="font-size:11px; color:#8b949e; margin-left:8px"></span></div>
+<div id="nav-buttons">
+</div>
+</div>
+<div class="hidden layout" id="tab-work">
+<div class="card" style="text-align:center">
+<div id="client-area" style="margin-top:50px;">
+<button class="btn-blue" onclick="nextClient()" style="padding:15px 30px; font-size:18px;">НАЧАТЬ ОБЗВОН</button>
+</div>
+</div>
+<div class="card">
+<textarea id="note" placeholder="Заметка к звонку..."></textarea>
+</div>
+</div>
+<div class="hidden card" id="tab-create-order">
+    <h2>➕ Создать заявку</h2>
+    <div class="panel">
+      <div class="row">
+        <div class="col">
+          <label>Имя</label>
+          <input id="co-name" class="input" placeholder="Имя клиента">
+        </div>
+        <div class="col">
+          <label>Номер</label>
+          <input id="co-phone" class="input" placeholder="Телефон">
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <label>ТЗ</label>
+          <input id="co-tz" class="input" placeholder="ТЗ">
+        </div>
+        <div class="col">
+          <label>Адрес</label>
+          <input id="co-address" class="input" placeholder="Адрес">
+        </div>
+        <div class="col">
+          <label>Возраст</label>
+          <input id="co-age" class="input" placeholder="Возраст">
+        </div>
+      </div>
+      <label>Доп. инфа</label>
+      <textarea id="co-extra" class="textarea" placeholder="Доп. инфа"></textarea>
+
+      <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+        <button class="btn-purple" onclick="createOrderToTech()">Передать на техника</button>
+        <span id="co-status" class="muted"></span>
+      </div>
+      <div class="muted" style="margin-top:8px;">*Доступно всем, кроме роли Купат. Заявка сразу попадёт технику.</div>
+    </div>
+  </div>
+
+<div class="hidden card" id="tab-notes">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+    <h3 style="margin:0">📝 Заметки</h3>
+    <button class="btn-pur" onclick="openNotesModal({source:'manual'}, 'Новая заметка')">➕ Добавить заметку</button>
+  </div>
+  <div id="notes-list" style="margin-top:10px"></div>
+</div>
+
+<div class="hidden card" id="tab-callbacks"><h3>🔁 Перезвон</h3><div id="list-callbacks"></div></div>
+<div class="hidden card" id="tab-my-orders"><h3 id="my-title">📤 История</h3><div id="list-my"></div></div>
+<div class="hidden card" id="tab-tech"><h3>🛠 Заявки (Техник)</h3><div id="list-tech"></div></div>
+<div class="hidden card" id="tab-tech-my"><h3>🧰 Мои техники</h3><div id="list-tech-my"></div></div>
+<div class="hidden card" id="tab-returns"><h3>↩ Возвраты / НДЗ</h3><div id="list-returns"></div></div>
+<div class="hidden card" id="tab-closer"><h3>💰 Закрытие сделок</h3><div id="list-closer"></div></div>
+<div class="hidden card" id="tab-kupat"><h3>👴 База "На Купат"</h3><div id="list-kupat"></div></div>
+<div class="hidden card" id="tab-kupat-my-clients"><h3>👴 Мои клиенты (Купат)</h3><div id="list-kupat-my-clients"></div></div>
+<div class="hidden card" id="tab-kupat-my-transfers"><h3>📤 Мои передачи (Купат)</h3><div id="list-kupat-my-transfers"></div></div>
+<div class="hidden card" id="tab-income">
+<h3>💵 Доход</h3>
+<div style="color:#8b949e; font-size:13px; margin-bottom:10px">
+        Доступно только для админа. Калькулятор зарплаты — пока без сохранения.
+    </div>
+<div class="grid2">
+<div class="card" style="padding:14px">
+<div class="row"><label>Сумма закрыва</label><input id="inc_sum" placeholder="10000" step="0.01" type="number" value="10000"/></div>
+<div class="row"><label>Процент куры (%)</label><input id="inc_kura" placeholder="14" step="0.01" type="number" value="14"/></div>
+<div class="row"><label>% на клиента</label><input id="inc_client_pct" placeholder="15" step="0.01" type="number" value="15"/></div>
+<hr style="border:0;border-top:1px solid rgba(255,255,255,0.08); margin:12px 0"/>
+<div class="row"><label>Разделить на</label><input id="inc_div" placeholder="4" step="0.01" type="number" value="4"/></div>
+<div class="row"><label>Умножить на</label><input id="inc_mul" placeholder="36" step="0.01" type="number" value="36"/></div>
+<div style="display:flex; gap:10px; margin-top:12px">
+<button class="btn-gray" onclick="incomeReset()">Сброс</button>
+</div>
+</div>
+<div class="card" style="padding:14px">
+<div style="font-size:13px; color:#8b949e; margin-bottom:8px">Расчёт</div>
+<div class="kv"><div>Кура:</div><div id="inc_kura_sum">—</div></div>
+<div class="kv"><div>Остаток после куры:</div><div id="inc_after_kura">—</div></div>
+<div class="kv"><div>% на клиента:</div><div id="inc_client_pct_out">—</div></div>
+<div class="kv"><div>Сумма “на клиента”:</div><div id="inc_client_sum">—</div></div>
+<hr style="border:0;border-top:1px solid rgba(255,255,255,0.08); margin:12px 0"/>
+<div class="kv"><div>После деления:</div><div id="inc_div_res">—</div></div>
+<div class="kv"><div>Итог:</div><div id="inc_total" style="font-weight:800; font-size:20px">—</div></div>
+<div style="margin-top:10px; font-size:12px; color:#8b949e">
+                Формула: (Сумма − %куры) → %на клиента → /делитель → ×множитель
+            </div>
+</div>
+</div>
+
+<div class="card sheet-embed-wrap" style="padding:14px">
+<div class="sheet-embed-head">
+<h3 style="margin:0">📊 Google-таблица</h3>
+<a class="btn-blue" href="https://docs.google.com/spreadsheets/d/1ai0mGxEYgTpfA5rdhDvM1R1Qk90gOYYh_kMBr_e3bZM/edit?gid=0#gid=0" rel="noopener noreferrer" style="text-decoration:none; display:inline-flex; align-items:center;" target="_blank">Открыть в новой вкладке</a>
+</div>
+<div class="muted" style="font-size:12px; margin-bottom:8px">Если таблица не отображается во встроенном окне (ограничение Google по iframe), используйте кнопку "Открыть в новой вкладке".</div>
+<iframe allow="clipboard-read; clipboard-write" class="sheet-embed-frame" loading="lazy" src="https://docs.google.com/spreadsheets/d/1ai0mGxEYgTpfA5rdhDvM1R1Qk90gOYYh_kMBr_e3bZM/edit?gid=0&amp;single=true&amp;widget=true&amp;headers=false" title="Google таблица доходов"></iframe>
+</div>
+</div>
+<div class="hidden card" id="tab-logs"><h3>📋 Лог звонков</h3><table id="table-logs"><thead><tr><th>Время</th><th>Опер</th><th>Клиент</th><th>Статус</th><th>Инфо</th></tr></thead><tbody></tbody></table></div>
+<div class="hidden" id="tab-admin">
+<div class="layout">
+<div class="card">
+<h3>👥 Сотрудники</h3>
+<table id="table-stats"></table>
+
+<hr style="border:0; border-top:1px solid #333; margin:14px 0"/>
+<h3>📤 Экспорт AUTO/НДЗ</h3>
+<div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+  <button class="btn-green" onclick="downloadAutoNdz()">Скачать Excel AUTO/НДЗ</button>
+  <span class="muted">Файл сохранён на сервере как <b>export_auto_ndz.xlsx</b></span>
+</div>
+
+<hr style="border:0; border-top:1px solid #333"/>
+<div style="display:flex; gap:5px;">
+<input id="nL" placeholder="Логин" style="flex:1"/>
+<input id="nP" placeholder="Пароль" style="flex:1"/>
+<select id="nR" style="flex:1">
+<option value="user">Оператор</option>
+<option value="tech">Техник</option>
+<option value="closer">Закрыв</option>
+<option value="kupat">Купат</option>
+<option value="admin">Админ</option>
+</select>
+</div>
+<button class="btn-blue" onclick="addUser()" style="width:100%; margin-top:5px;">Добавить</button>
+<hr style="border:0; border-top:1px solid #333; margin:10px 0"/>
+<h4 style="margin:0 0 6px 0">💳 Баланс (только админ)</h4>
+<div style="display:flex; gap:6px; align-items:center">
+<select id="balUser" style="flex:1"></select>
+<input id="balVal" placeholder="Баланс" style="width:110px" type="number"/>
+</div>
+<button class="btn-gray" onclick="setBalance()" style="width:100%; margin-top:6px;">Назначить баланс</button>
+</div>
+<div class="card">
+<h3>🗄 База Данных</h3>
+<input id="fileIn" type="file"/>
+<button class="btn-gray" onclick="uploadDb()">1. Загрузить Excel</button>
+<hr style="border:0; border-top:1px solid #333; margin:10px 0"/>
+<select id="dbSel"></select>
+<button class="btn-gray" onclick="openDbPickerModal()">Выбрать базу (подробно)</button>
+<button class="btn-blue" onclick="activateDb()">2. Активировать базу</button>
+<div style="margin-top:8px; font-size:13px">
+  <label style="display:flex; align-items:center; gap:8px; color:#c9d1d9">
+    <input id="dbAllowDup" type="checkbox" style="width:auto; margin:0"/>
+    Разрешить повторы для этой базы (игнор анти-дубля по истории)
+  </label>
+</div>
+<div class="db-meta-grid">
+  <div class="db-meta-item"><div class="k">Активная база</div><div class="v" id="dbActiveName">—</div></div>
+  <div class="db-meta-item"><div class="k">Осталось доступных номеров</div><div class="v" id="dbActiveRemaining">—</div></div>
+</div>
+</div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+let dbListCache = [];
+let dbListDetailsCache = [];
+let dbDeletedListCache = [];
+let dbDeletedPagination = { page: 1, limit: 20, total: 0, totalPages: 1 };
+
+async function downloadAutoNdz(){
+  try{
+    if(!me || me.role!=='admin'){ alert('Только для админа'); return; }
+    // прямой download
+    window.location.href = `/api/export/auto-ndz?login=${encodeURIComponent(me.login)}&role=${encodeURIComponent(me.role)}`;
+  }catch(e){ console.error(e); }
+}
+
+
+
+</script>
+<div id="tab-admin-stats" class="card hidden">
+  <h3 style="margin:0 0 10px 0;">📊 Статистика пользователей</h3>
+  <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+    <label style="font-size:13px;">Дата:
+      <input type="date" id="adminStatsDate" style="margin-left:8px;">
+    </label>
+    <button class="btn-green" id="adminStatsLoadBtn">⟳ Показать</button>
+    <button class="btn-gray" id="adminStatsDownloadBtn">📥 Скачать Excel</button>
+	<button class="btn-yel" id="kupatExportBtn">📦 Скачать Купат Excel</button>
+    <span class="muted" style="font-size:12px;">Только админ. Считает клики “ПОЗВОНИТЬ” и кнопки (НДЗ/АВТО/ОТКАЗ/ИВРИТ/ПЕРЕДАЛ/НА КУПАТ).</span>
+  </div>
+  <div id="adminStatsBox" class="card" style="margin-top:12px; padding:12px; background:rgba(13,17,23,0.6); border:1px solid #30363d; min-height:160px;">
+    Выбери дату и нажми “Показать”.
+  </div>
+</div>
+
+<script>
+// STATE
+let me = null;
+let curClient = null;
+
+// --- STATS TRACKING (ADMIN REPORTS) ---
+function trackEvent(action, phone='', extra='') {
+  try {
+    if (!me || !me.login) return;
+    const payload = { login: me.login, role: me.role, action, phone, extra };
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/stats/event', blob);
+    } else {
+      fetch('/api/stats/event', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload), keepalive: true });
+    }
+  } catch(e) {}
+}
+
+async function loadAdminStats() {
+  if (!me || me.role !== 'admin') return;
+  const dateInp = document.getElementById('adminStatsDate');
+  const box = document.getElementById('adminStatsBox');
+  if (!dateInp || !box) return;
+  const day = (dateInp.value || '').slice(0,10);
+  if (!day) { box.textContent = 'Выбери дату.'; return; }
+  box.textContent = 'Загрузка...';
+  try {
+    const r = await fetch(`/api/admin/stats?login=${encodeURIComponent(me.login)}&role=${encodeURIComponent(me.role)}&date=${encodeURIComponent(day)}`);
+    const d = await r.json();
+    if (!r.ok) { box.textContent = d.error || 'Ошибка'; return; }
+    const rows = d.rows || [];
+    const th = ['Логин','Звонков','НДЗ','АВТО','ОТКАЗ','ИВРИТ','Передал','Купат','Закрыл','Первое','Последнее'];
+    let html = '<div style="overflow:auto;"><table class="tbl"><thead><tr>' + th.map(x=>`<th>${x}</th>`).join('') + '</tr></thead><tbody>';
+    for (const row of rows) {
+      html += '<tr>' +
+        `<td>${escapeHtml(row.login)}</td>`+
+        `<td>${row.calls||0}</td>`+
+        `<td>${row.ndz||0}</td>`+
+        `<td>${row.auto||0}</td>`+
+        `<td>${row.refuse||0}</td>`+
+        `<td>${row.ivrit||0}</td>`+
+        `<td>${row.passed||0}</td>`+
+        `<td>${row.kupat||0}</td>`+
+        `<td>${row.closed||0}</td>`+
+        `<td>${escapeHtml(row.first||'')}</td>`+
+        `<td>${escapeHtml(row.last||'')}</td>`+
+      '</tr>';
+    }
+    html += '</tbody></table></div>';
+    box.innerHTML = html;
+  } catch (e) {
+    box.textContent = 'Ошибка загрузки статистики';
+  }
+}
+
+function setupAdminStatsUI() {
+  const dateInp = document.getElementById('adminStatsDate');
+  const loadBtn = document.getElementById('adminStatsLoadBtn');
+  const dlBtn = document.getElementById('adminStatsDownloadBtn');
+  const kupatBtn = document.getElementById('kupatExportBtn');
+
+  if (dateInp && !dateInp.value) {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    dateInp.value = `${yyyy}-${mm}-${dd}`;
+  }
+  if (loadBtn) loadBtn.onclick = () => loadAdminStats();
+  if (dateInp) dateInp.onchange = () => loadAdminStats();
+  if (dlBtn) dlBtn.onclick = () => {
+    if (!me || me.role !== 'admin') return;
+    window.open(`/api/admin/stats/download?login=${encodeURIComponent(me.login)}&role=${encodeURIComponent(me.role)}`, '_blank');
+  };
+  if (kupatBtn) kupatBtn.onclick = () => downloadKupatExcel();
+}
+
+function downloadKupatExcel(){
+  if(!me || me.role!=='admin') return;
+  window.open(`/api/export/kupat?login=${encodeURIComponent(me.login)}&role=${encodeURIComponent(me.role)}`, '_blank');
+}
+
+// helpers: safe html
+
+function renderMedia(url){
+  if(!url) return '';
+  const u = String(url);
+  const ext = (u.split('?')[0].split('#')[0].split('.').pop() || '').toLowerCase();
+  const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext) || u.startsWith('data:image');
+  const isVid = ['mp4','webm','ogg','mov','m4v'].includes(ext) || u.startsWith('data:video');
+  if(isImg){
+    return `<div class="media"><img src="${escapeAttr(u)}" style="max-width:260px; max-height:180px; border-radius:10px; border:1px solid rgba(255,255,255,.12);" /></div>`;
+  }
+  if(isVid){
+    return `<div class="media"><video src="${escapeAttr(u)}" controls style="max-width:320px; max-height:220px; border-radius:10px; border:1px solid rgba(255,255,255,.12);"></video></div>`;
+  }
+  return `<div class="media"><a href="${escapeAttr(u)}" target="_blank" class="sip-btn">📎 Файл</a></div>`;
+}
+
+function escapeHtml(s){
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ===== Assignment dropdowns support (moved inside script) =====
+// Users cache (for assignment dropdowns)
+let usersCache = [];
+async function loadUsersCache(){
+  try{
+    const r = await fetch('/api/users');
+    const d = await r.json();
+    usersCache = Array.isArray(d.users) ? d.users : [];
+  }catch(e){ usersCache = []; }
+}
+function usersByRole(role){
+  return (usersCache||[]).filter(u=>u && u.role===role).map(u=>u.login);
+}
+function renderChips(arr, prefix){
+  const a = (Array.isArray(arr)?arr:[]).filter(Boolean);
+  if(!a.length) return `<span class="who">-</span>`;
+  return a.map(x=>`<span class="who" style="margin-right:6px; font-size:15px; font-weight:900;">${escapeHtml(x)}</span>`).join('');
+}
+async function addAssignee(orderId, listType, selId){
+  const sel = document.getElementById(selId);
+  const assignee = (sel?.value || '').trim();
+  if(!assignee) return;
+  try{
+    const r = await fetch('/api/orders/assign', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: orderId, listType, assignee, requesterLogin: me?.login, requesterRole: me?.role })
+    });
+    if(!r.ok){ const t=await r.text(); return alert('Не удалось назначить: '+t); }
+    // reload current view lists
+    if(listType==='tech') await loadOrders('tech');
+    if(listType==='closer') await loadOrders('closer');
+    // also refresh others that may show same order
+    await loadOrders('returns'); 
+  }catch(e){ alert('Ошибка назначения'); }
+}
+// ===== end assignment dropdowns support =====
+
+
+function escapeAttr(s){ return escapeHtml(s).replace(/\s/g,''); }
+function roleTitle(r){
+    if(r==='user') return 'Оператор';
+    if(r==='tech') return 'Техник';
+    if(r==='closer') return 'Закрыв';
+    if(r==='kupat') return 'Купат';
+    if(r==='admin') return 'Админ';
+    return r || '';
+}
+
+// Формат времени в UTC+2 (YYYY-MM-DD HH:MM:SS)
+function formatUTC2(ts){
+  if(!ts) return '';
+  const s = String(ts);
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s)) return s;
+  const d0 = new Date(s);
+  if (!isNaN(d0.getTime())) {
+    const d = new Date(d0.getTime() + 2*60*60*1000);
+    const pad = (n)=>String(n).padStart(2,'0');
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+  }
+  return s;
+}
+
+function formatDateTimeRuUTC2(ts){
+  const s = formatUTC2(ts);
+  const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2})(?::\d{2})?$/);
+  if (!m) return s || '-';
+  const [, y, mo, d, h, mi] = m;
+  return `${d}.${mo}.${y} ${h}:${mi}`;
+}
+
+function canCommentOrder(o){
+    if(!me) return false;
+    const st = o.status;
+    if(me.role === 'admin') return true;
+
+    // Опер может писать только пока заявка у техника (до закрыва)
+    if(me.role === 'user') return (st === 'new' || st === 're-work' || st === 'return');
+
+    // Техник — пока не финал/не отказ
+    if(me.role === 'tech') return (st !== 'final' && st !== 'refuse');
+
+    // Закрыв — на своём этапе
+    if(me.role === 'closer') return (st === 'closer' || st === 'final' || (o.closer && o.closer === me.login));
+
+    return false;
+}
+async function saveOrderComment(id, textareaId){
+    const el = document.getElementById(textareaId);
+    if(!el) return;
+    const text = (el.value || '').trim();
+    const fileEl = document.getElementById(textareaId + '_file');
+    const file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+
+    if(!text && !file) return alert('Пустой комментарий.');
+
+    const fd = new FormData();
+    fd.append('id', id);
+    fd.append('role', me.role);
+    fd.append('login', me.login);
+    fd.append('text', text);
+    if(file) fd.append('file', file);
+
+    const r = await fetch('/api/orders/comment', {
+        method:'POST',
+        body: fd
+    });
+    if(!r.ok){
+        const j = await r.json().catch(()=>({}));
+        return alert('Нельзя добавить комментарий: ' + (j.error || r.status));
+    }
+    el.value = '';
+    if(fileEl) fileEl.value = '';
+    if(window._activeTab){
+      const t = window._activeTab;
+      if(['my-orders','tech','returns','closer'].includes(t)) await loadOrders(t);
+      if(t==='kupat') await loadKupat();
+      if(t==='logs') await loadLogs();
+    } // обновить текущую вкладку
+}
+
+// NOTIFY SOUND (WebAudio beep)
+let _audioCtx = null;
+let _audioUnlocked = false;
+function _ensureAudio() {
+    if(!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function unlockAudioOnce() {
+    if(_audioUnlocked) return;
+    _ensureAudio();
+    _audioCtx.resume().catch(()=>{});
+    _audioUnlocked = true;
+    document.removeEventListener('click', unlockAudioOnce);
+    document.removeEventListener('touchstart', unlockAudioOnce);
+}
+document.addEventListener('click', unlockAudioOnce, {once:true});
+document.addEventListener('touchstart', unlockAudioOnce, {once:true});
+
+function playNotify() {
+    // выразительный, но мягкий "chime" (2 тона, плавная огибающая)
+    try {
+        _ensureAudio();
+        if(_audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
+        const t0 = _audioCtx.currentTime;
+
+        const master = _audioCtx.createGain();
+        master.gain.setValueAtTime(0.0001, t0);
+        master.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
+        master.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.70);
+
+        const lp = _audioCtx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.setValueAtTime(3200, t0);
+        lp.Q.setValueAtTime(0.7, t0);
+
+        const o1 = _audioCtx.createOscillator();
+        const o2 = _audioCtx.createOscillator();
+        const g1 = _audioCtx.createGain();
+        const g2 = _audioCtx.createGain();
+
+        o1.type = 'triangle';
+        o2.type = 'sine';
+
+        // two-step "ding"
+        o1.frequency.setValueAtTime(523.25, t0); // C5
+        o1.frequency.exponentialRampToValueAtTime(784.00, t0 + 0.18); // G5
+        o2.frequency.setValueAtTime(659.25, t0); // E5
+        o2.frequency.exponentialRampToValueAtTime(987.77, t0 + 0.18); // B5
+
+        g1.gain.setValueAtTime(0.0001, t0);
+        g2.gain.setValueAtTime(0.0001, t0);
+        g1.gain.exponentialRampToValueAtTime(0.9, t0 + 0.02);
+        g2.gain.exponentialRampToValueAtTime(0.7, t0 + 0.02);
+        g1.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.70);
+        g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.70);
+
+        o1.connect(g1); o2.connect(g2);
+        g1.connect(lp); g2.connect(lp);
+        lp.connect(master);
+        master.connect(_audioCtx.destination);
+
+        o1.start(t0); o2.start(t0);
+        o1.stop(t0 + 0.72); o2.stop(t0 + 0.72);
+    } catch(e) { /* ignore */ }
+}
+
+// POLLING for new incoming orders (tech/closer)
+let _seenTechIds = new Set();
+let _seenCloserIds = new Set();
+let _pollReady = false;
+
+async function pollIncoming() {
+    if(!me) return;
+    try {
+        if(me.role === 'tech') {
+            const r = await fetch(`/api/orders?login=${me.login}&role=${me.role}&view=tech`);
+            let data = await r.json();
+            // incoming for tech: new / re-work (реальные "пришли")
+            const incoming = data.filter(o => o.status === 'new' || o.status === 're-work');
+            const ids = new Set(incoming.map(o => o.id));
+            if(_pollReady) {
+                let isNew = false;
+                for(const id of ids) if(!_seenTechIds.has(id)) { isNew = true; break; }
+                if(isNew) playNotify();
+            }
+            _seenTechIds = ids;
+        }
+
+        if(me.role === 'closer') {
+            const r = await fetch(`/api/orders?login=${me.login}&role=${me.role}&view=closer`);
+            let data = await r.json();
+            const incoming = data.filter(o => o.status === 'closer');
+            const ids = new Set(incoming.map(o => o.id));
+            if(_pollReady) {
+                let isNew = false;
+                for(const id of ids) if(!_seenCloserIds.has(id)) { isNew = true; break; }
+                if(isNew) playNotify();
+            }
+            _seenCloserIds = ids;
+        }
+
+        _pollReady = true;
+    } catch(e) {}
+}
+
+
+// --- AUTH & NAV ---
+async function login() {
+    const msgEl = document.getElementById('loginMsg');
+    const setMsg = (t) => {
+        if(!msgEl) return;
+        msgEl.style.display = t ? 'block' : 'none';
+        msgEl.textContent = t || '';
+    };
+
+    try {
+        setMsg('');
+
+        const loginEl = document.getElementById('logIn');
+        const passEl  = document.getElementById('pasIn');
+        const loginV = (loginEl?.value || '').trim();
+        const passV  = (passEl?.value  || '').trim();
+        const r = await fetch('/api/login', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({login: loginV, pass: passV})
+        });
+
+        let res = {};
+        try { res = await r.json(); } catch(e) { res = {}; }
+
+        if(r.ok && res.success) {
+            me = res.user;
+            document.getElementById('auth-shell').classList.add('hidden');
+            document.getElementById('auth-box').classList.add('hidden');
+            document.getElementById('main-ui').classList.remove('hidden');
+            document.getElementById('uLabel').innerText = me.login;
+            document.getElementById('rLabel').innerText = (me.role || '').toUpperCase();
+            setupNav();
+            if(me.role==='tech' || me.role==='closer') {
+                document.getElementById('soundHint').innerText = '🔔 звук уведомления включится после первого клика по странице';
+            }
+            try{ await loadUsersCache(); }catch(e){}
+			setupAdminStatsUI();
+
+// prefetch my stats
+        try{ await loadMyStats(); }catch(e){}
+
+            wireIncomeInputs();
+            setMyTitle();
+            pollIncoming();
+            setInterval(pollIncoming, 8000);
+        } else {
+            // Покажем понятнее, что именно случилось
+            if (r.status === 401) { setMsg('Неверный логин/пароль'); }
+            else { setMsg('Ошибка входа: ' + r.status + ' ' + (res.error || '')); }
+        }
+    } catch(e) {
+        console.error(e);
+        setMsg('Ошибка сервера/сети. Проверь, что server.js запущен и /api/login доступен.');
+    }
+}
+
+function setupNav() {
+    const nav = document.getElementById('nav-buttons');
+    let html = '';
+    const r = me.role;
+
+    const exitBtn = `<button onclick="location.reload()" class="btn-gray">Выход</button>`;
+
+    if(r === 'admin'){
+        html += `<button onclick="openTab('work')">📞 Обзвон</button>`;
+        html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
+        html += `<button onclick="openTab('create-order')">➕ Создать заявку</button>`;
+        html += `<button onclick="openTab('my-orders')">История</button>`;
+        html += `<button onclick="openTab('tech')">🛠 Техник</button>`;
+        html += `<button onclick="openTab('tech-my')">🧰 Мои техники</button>`;
+        html += `<button onclick="openTab('returns')">↩ Возвраты</button>`;
+        html += `<button onclick="openTab('closer')">✅ Закрыв</button>`;
+        html += `<button onclick="openTab('kupat')">🏷 Купат</button>`;
+                html += `<button onclick="openTab('income')">💵 Доход</button>`;
+        html += `<button onclick="openTab('logs')">📒 Лог звонков</button>`;
+        html += `<button onclick="openTab('admin')">🧑‍💼 Админ</button>`;
+        html += `<button onclick="openTab('admin-stats')">📊 Статистика</button>`;
+		        html += `<button onclick="openTab('callbacks')">🔁 Перезвон</button>`;
+        nav.innerHTML = html + exitBtn;
+        return;
+    }
+
+    if(r === 'user') {
+        html += `<button onclick="openTab('work')">📞 Обзвон</button>`;
+        html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
+        html += `<button onclick="openTab('create-order')">➕ Создать заявку</button>`;
+        html += `<button onclick="openTab('my-orders')">История</button>`;
+		html += `<button onclick="openTab('callbacks')">🔁 Перезвон</button>`;
+    }
+    if(r === 'tech') {
+        html += `<button onclick="openTab('tech')">🛠 Входящие</button>`;
+        html += `<button onclick="openTab('tech-my')">🧰 Мои техники</button>`;
+	    html += `<button onclick="openTab('callbacks')">🔁 Перезвоны</button>`;
+		html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
+        html += `<button onclick="openTab('create-order')">➕ Создать заявку</button>`;
+        html += `<button onclick="openTab('my-orders')">История</button>`;
+    }
+    if(r === 'closer') {
+        html += `<button onclick="openTab('closer')">✅ Закрыв</button>`;
+        html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
+        html += `<button onclick="openTab('create-order')">➕ Создать заявку</button>`;
+        html += `<button onclick="openTab('kupat')">🏷 Купат</button>`;
+    }
+    if(r === 'kupat') {
+		html += `<button onclick="openTab('kupat')">🏷 Входящие Купат</button>`;
+        html += `<button onclick="openTab('kupat-my-clients')">👴 Мои клиенты</button>`;
+        html += `<button onclick="openTab('kupat-my-transfers')">📤 Мои передачи</button>`;
+		html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
+		html += `<button onclick="openTab('callbacks')">🔁 Перезвон</button>`;
+    }
+    if(r === 'tech' || r === 'user') {
+        html += `<button onclick="openTab('returns')">↩ Возвраты</button>`;
+    }
+
+        nav.innerHTML = html + exitBtn;
+}
+
+
+function setMyTitle() {
+    const el = document.getElementById('my-title');
+    if(!el) return;
+    if(me.role === 'user' || me.role === 'admin') el.innerText = '📤 Мои передачи';
+    else if(me.role === 'tech') el.innerText = '🛠 Моя история (Техник)';
+    else if(me.role === 'closer') el.innerText = '💰 Моя история (Закрыв)';
+    else el.innerText = '📤 История';
+}
+
+async function openTab(name) {
+    window._activeTab = name;
+    if(name === 'income' && me && me.role !== 'admin') return;
+
+    // Hide all
+    ['tab-work','tab-create-order','tab-my-orders','tab-notes','tab-callbacks','tab-tech','tab-tech-my','tab-returns','tab-closer','tab-kupat','tab-kupat-my-clients','tab-kupat-my-transfers','tab-income','tab-logs','tab-admin','tab-admin-stats']
+        .forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
+    
+    // Show one
+    const showEl = document.getElementById('tab-'+name);
+    if(showEl) showEl.classList.remove('hidden');
+    
+    // Load Data
+    if(name === 'notes') { await loadNotes(); }
+    if(name === 'callbacks') { await loadCallbacks(); }
+    if(name === 'my-orders') { setMyTitle(); loadOrders('my-orders'); }
+    if(name === 'tech') loadOrders('tech');
+    if(name === 'tech-my') loadOrders('tech-my');
+    if(name === 'returns') loadOrders('returns');
+    if(name === 'closer') loadOrders('closer');
+    if(name === 'kupat') loadKupat();
+    if(name === 'kupat-my-clients') loadKupatMyClients();
+    if(name === 'kupat-my-transfers') loadKupatMyTransfers();
+    if(name === 'income') { /* placeholder */ }
+    if(name === 'logs') loadLogs();
+    if(name === 'admin') { loadStats(); loadDbs(); }    if(name === 'admin-stats') { await loadAdminStats(); }
+}
+
+window.openTab = openTab;
+
+
+function buildCallTemplateFromRow(row){
+    const A = (row?.[0] ?? '').toString().trim();
+    const B = (row?.[1] ?? '').toString().trim();
+    const C = (row?.[2] ?? '').toString().trim();
+    const D = (row?.[3] ?? '').toString().trim();
+    const E = (row?.[4] ?? '').toString().trim();
+    const F = (row?.[5] ?? '').toString().trim();
+
+    return [
+        `Имя: ${A}`,
+        `Номер: ${B}`,
+        `Проблема: Телевиденье, работы на 10-14 дней, сигнал не словит все каналы, сохранить каналы нужно.`,
+        `Дома:`,
+        `Каналы которые нужно сохранить:`,
+        `ТЗ: ${C}`,
+        `Адрес: ${D}`,
+        `Возраст: ${E}`,
+        ``,
+        ``,
+        `Доп.Инфа: ${F}`,
+        `-`
+    ].join('\n');
+}
+// --- WORKER FLOW ---
+async function nextClient() {
+    const r = await fetch('/api/get-row');
+    const d = await r.json();
+    if(d.error) return alert(d.error);
+    
+    curClient = { name: d.row[0], phone: d.row[1], tz: d.row[2], address: d.row[3], age: d.row[4], extra: d.row[5], row: d.row }; window.curClient = curClient;
+    const area = document.getElementById('client-area');
+    
+    area.innerHTML = `
+        <h2 style="margin:0">${curClient.name}</h2>
+        <h1 style="color:#2f81f7; font-size:32px; margin:10px 0">${curClient.phone}</h1>
+        <a href="sip:${curClient.phone}" class="sip-btn" onclick="trackEvent('CALL', curClient.phone)">📞 ПОЗВОНИТЬ</a>
+        
+        <div class="action-grid">
+            <button class="btn-yel" onclick="sendResult('НДЗ')">НДЗ</button>
+            <button class="btn-blue" onclick="sendResult('АВТО')">АВТО</button>
+            <button class="btn-pur" onclick="sendResult('ИВРИТ')">ИВРИТ</button>
+            <button class="btn-red" onclick="sendResult('ОТКАЗ')">ОТКАЗ</button>
+            <button style="background:#e67e22" onclick="sendResult('НА КУПАТ')">НА КУПАТ</button>
+            <button style="background:#238636" onclick="sendResult('ПЕРЕДАЛ')">ПЕРЕДАЛ</button>
+        </div>
+        <div style="margin-top:10px"><button class="btn-vio" onclick="addCurrentToNotes()" style="width:100%; padding:12px; font-size:14px;">В ЗАМЕТКИ</button></div>
+		<div style="margin-top:8px"><button class="btn-gray" onclick="addCurrentToCallbacks()" style="width:100%; padding:10px; font-size:14px;">🔁 В ПЕРЕЗВОН</button></div>
+    `;
+    document.getElementById('note').value = buildCallTemplateFromRow(curClient.row || []);
+}
+
+async function sendResult(status) {
+    trackEvent(status, curClient?.phone || '', document.getElementById('note')?.value || '');
+    const note = document.getElementById('note').value;
+    await fetch('/api/save-result', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ status, user: me.login, phone: curClient.phone, name: curClient.name, note })
+    });
+    nextClient(); // Сразу следующий
+}
+
+
+function renderKanbanBoard(columns, renderItem){
+    const safeColumns = Array.isArray(columns) ? columns : [];
+    if(!safeColumns.length) return '<div class="badge">Пусто</div>';
+    return `<div class="kanban-board">${safeColumns.map(col => {
+        const items = Array.isArray(col.items) ? col.items : [];
+        return `
+            <div class="kanban-col">
+                <div class="kanban-col-head">
+                    <div class="kanban-col-title">${escapeHtml(col.title || 'Колонка')}</div>
+                    <div class="kanban-col-count">${items.length}</div>
+                </div>
+                <div class="kanban-col-body">
+                    ${items.length ? items.map(renderItem).join('') : '<div class="kanban-col-empty">Пусто</div>'}
+                </div>
+            </div>
+        `;
+    }).join('')}</div>`;
+}
+
+function orderStatusTitle(status){
+    const m = {
+        'new':'Новая','re-work':'Доработка','tech_work':'В работе у техника','return':'Возврат','closer':'На банк','final':'Финал','refuse':'Отказ'
+    };
+    return m[status] || (status || '-');
+}
+
+function openPreviewModal(title, html){
+    const box = document.getElementById('previewModal');
+    const t = document.getElementById('previewModalTitle');
+    const b = document.getElementById('previewModalBody');
+    if(t) t.textContent = title || 'Карточка';
+    if(b) b.innerHTML = html || '<div class="muted">Нет данных</div>';
+    if(box) box.classList.remove('hidden');
+}
+
+function closePreviewModal(){
+    const box = document.getElementById('previewModal');
+    if(box) box.classList.add('hidden');
+}
+
+function openOrderPreview(type, id){
+    const arr = ordersCache[type] || [];
+    const o = arr.find(x => String(x.id) === String(id));
+    if(!o) return alert('Карточка не найдена');
+    const comments = renderOrderComments(Array.isArray(o.comments) ? o.comments : []);
+    const html = `
+      <div class="pillbar" style="margin-bottom:10px">
+        <span class="pill"><small>Статус</small><span class="who">${escapeHtml(orderStatusTitle(o.status))}</span></span>
+        <span class="pill"><small>Опер</small><span class="who">${escapeHtml(o.operator || '-')}</span></span>
+        <span class="pill"><small>Тех</small><span class="who">${renderChips(o.techs || (o.tech?[o.tech]:[]), 'Тех')}</span></span>
+        <span class="pill"><small>Закрыв</small><span class="who">${renderChips(o.closers || (o.closer?[o.closer]:[]), 'Закрыв')}</span></span>
+      </div>
+      <div class="kvcol"><div class="k">Клиент</div><div class="v">${escapeHtml(o.clientName || '-')}</div></div>
+      <div class="kvcol"><div class="k">Телефон</div><div class="v">${escapeHtml(o.phone || '-')}</div></div>
+      <div class="kvcol"><div class="k">Инфо</div><div class="v">${escapeHtml(o.details || '')}</div></div>
+      ${o.operatorComment ? `<div class="kvcol"><div class="k">Опер инфо</div><div class="v">${escapeHtml(o.operatorComment)}</div></div>` : ''}
+      ${o.techInfo ? `<div class="kvcol"><div class="k">Тех инфо</div><div class="v">${escapeHtml(o.techInfo)}</div></div>` : ''}
+      ${o.finalText ? `<div style="border:1px solid ${escapeAttr(o.finalColor || '#30363d')}; border-radius:10px; padding:8px; margin-top:8px">🏁 ${escapeHtml(o.finalText)}</div>` : ''}
+      ${comments}
+    `;
+    openPreviewModal(`Клиент: ${o.clientName || '-'}`, html);
+}
+
+function openKupatPreview(id){
+    const arr = window._kupatAllCache || [];
+    const o = arr.find(x => String(x.id) === String(id));
+    if(!o) return alert('Карточка не найдена');
+    const html = `
+      ${renderKupatInfoBlock(o)}
+      ${renderKupatComments(o.comments)}
+    `;
+    openPreviewModal(`Купат: ${o.clientName || '-'}`, html);
+}
+
+function renderCompactOrderCommentsBlock(o){
+    const comments = renderOrderComments(Array.isArray(o.comments) ? o.comments : []);
+    const cid = `order_comment_${o.id}`;
+    const canC = canCommentOrder(o);
+    const canUpload = (me.role === 'tech' || me.role === 'closer' || me.role === 'admin');
+    const editor = renderOrderCommentEditor(o, cid, canC, canUpload);
+    if(!comments && !editor) return '';
+    return `<div class="compact-comment-wrap">${comments || ''}${editor || ''}</div>`;
+}
+
+function renderCompactClientCard(o, actionsHtml, extraClass='', withOrderComments=false){
+    const created = o.createdAt || o.time || o.date || '';
+    const createdText = created ? formatDateTimeRuUTC2(created) : '—';
+    const owner = o.operator || o.kupatUser || o.tech || '-';
+    const phone = escapeHtml(o.phone || '-');
+    const safePhoneAttr = escapeAttr(o.phone || '');
+    return `
+      <div class="order-item compact-card ${extraClass}">
+        <div class="order-head">
+          <div>
+            <div class="order-title">${escapeHtml(o.clientName || 'Без имени')}</div>
+            <div class="order-phone">${phone}</div>
+          </div>
+          ${o.phone ? `<a href="sip:${safePhoneAttr}" class="card-call" onclick="trackEvent('CALL', '${safePhoneAttr}')">📞 ЗВОНОК</a>` : ''}
+        </div>
+        <div class="pillbar">
+            <span class="pill"><small>Статус</small><span class="who">${escapeHtml(orderStatusTitle(o.status))}</span></span>
+        </div>
+        <div class="card-meta">
+          <div class="k">Ответственный</div>
+          <div class="v">${escapeHtml(owner)}</div>
+          <div class="k">Дата</div>
+          <div class="v">${escapeHtml(createdText)}</div>
+          <div class="k">ID</div>
+          <div class="v">${escapeHtml(String(o.id || '-'))}</div>
+        </div>
+        <div class="card-actions">
+          <div class="label">Задачи</div>
+          <div class="action-buttons">${actionsHtml || ''}</div>
+        </div>
+      </div>
+      ${withOrderComments ? renderCompactOrderCommentsBlock(o) : ''}
+    `;
+}
+
+// --- RENDERING LISTS ---
+async function loadOrders(type) {
+    const r = await fetch(`/api/orders?login=${me.login}&role=${me.role}&view=${type}`);
+    let data = await r.json();
+    data = Array.isArray(data) ? data : [];
+    try{ ordersCache[type] = data; }catch(e){}
+
+    const targetByType = {
+        'my-orders': 'list-my',
+        'tech': 'list-tech',
+        'tech-my': 'list-tech-my',
+        'returns': 'list-returns',
+        'closer': 'list-closer'
+    };
+    const target = targetByType[type] || 'list-closer';
+    
+    const sorted = data.slice().reverse();
+
+    if(type === 'my-orders') {
+        const mine = sorted.filter(o => o.operator === me.login);
+        const columns = [
+            { title:'Мои', items: mine.filter(o => ['new','re-work'].includes(o.status)) },
+            { title:'В работе у техника', items: mine.filter(o => o.status === 'tech_work') },
+            { title:'Возвраты', items: mine.filter(o => o.status === 'return') },
+            { title:'Клиенты на банк', items: mine.filter(o => o.status === 'closer') }
+        ];
+        document.getElementById(target).innerHTML = renderKanbanBoard(columns, o => renderCompactClientCard(o,
+          `<button class="btn-blue" onclick="openOrderPreview('my-orders', ${o.id})">Посмотреть полностью</button>`, '', true
+        ));
+        return;
+    }
+
+    if(type === 'tech') {
+        const items = sorted.filter(o => o.status === 'new' || o.status === 're-work');
+        document.getElementById(target).innerHTML = renderKanbanBoard([
+          { title:'Карточки клиентов', items }
+        ], o => renderCompactClientCard(o,
+          `<button class="btn-blue" onclick="techTakeInWork(${o.id})">Взять в работу</button>
+           <button class="btn-gray" onclick="openOrderPreview('tech', ${o.id})">Посмотреть полностью</button>`, '', true
+        ));
+        return;
+    }
+
+    if(type === 'tech-my') {
+        const items = sorted.filter(o => o.status === 'tech_work');
+        document.getElementById(target).innerHTML = renderKanbanBoard([
+          { title:'Мои техники', items }
+        ], o => renderCompactClientCard(o,
+          `<button class="btn-yel" onclick="openTechOrderActionModal(${o.id}, 'return')">НДЗ</button>
+           <button class="btn-red" onclick="openTechOrderActionModal(${o.id}, 'refuse')">ОТКАЗ</button>
+           <button class="btn-pur" onclick="openTechOrderActionModal(${o.id}, 'closer')">НА БАНК</button>
+           <button class="btn-gray" onclick="moveTechToCallback(${o.id})">ПЕРЕЗВОН</button>
+           <button class="btn-blue" onclick="openOrderPreview('tech-my', ${o.id})">Посмотреть полностью</button>`, '', true
+        ));
+        return;
+    }
+
+    if(type === 'returns') {
+        const items = sorted.filter(o => o.status === 'return');
+        document.getElementById(target).innerHTML = renderKanbanBoard([
+          { title:'Возвраты', items }
+        ], o => renderCompactClientCard(o,
+          `${(me.role === 'user' || me.role === 'admin') ? `<button class="btn-blue" onclick="returnToTech(${o.id})">Вернуть технику</button>` : ''}
+           <button class="btn-gray" onclick="openOrderPreview('returns', ${o.id})">Посмотреть полностью</button>`, '', true
+        ));
+        return;
+    }
+
+    if(type === 'closer') {
+        const items = sorted.filter(o => o.status === 'closer' || o.status === 'final');
+        document.getElementById(target).innerHTML = renderKanbanBoard([
+          { title:'Закрыв', items }
+        ], o => renderCompactClientCard(o,
+          `${(me.role === 'closer' || me.role === 'admin') && o.status==='closer' ? `<button class="btn-blue" onclick="finalOrder(${o.id})">ФИНАЛ</button>` : ''}
+           ${(me.role === 'closer' || me.role === 'admin') ? `<button class="btn-vio" onclick="addOrderToNotes(${o.id}, 'closer')">В ЗАМЕТКИ</button>` : ''}
+           <button class="btn-gray" onclick="openOrderPreview('closer', ${o.id})">Посмотреть полностью</button>`, '', true
+        ));
+        return;
+    }
+}
+
+
+function renderKupatInfoBlock(o){
+    const operator = o.operatorFrom || o.operator || '-';
+    const kupatUser = o.kupatUser || '-';
+    const closer = o.closer || '-';
+    const opToKupatTime = o.opToKupatAt ? formatUTC2(o.opToKupatAt) : '-';
+    return `
+        <div class="pillbar" style="margin-top:8px">
+            <span class="pill"><small>Опер</small> <span class="who">${escapeHtml(operator)}</span></span>
+            <span class="pill"><small>Купат</small> <span class="who">${escapeHtml(kupatUser)}</span></span>
+            <span class="pill"><small>Закрыв</small> <span class="who">${escapeHtml(closer)}</span></span>
+            <span class="pill"><small>Статус</small> <span class="who">${escapeHtml(o.status || '-')}</span></span>
+            <span class="pill"><small>Время</small> <span class="who">${escapeHtml(opToKupatTime)}</span></span>
+        </div>
+        ${o.kupatToCloserAt ? `<div class="kvcol" style="margin-top:8px"><div class="k">Купат→Закрыв</div><div class="v">${escapeHtml(formatUTC2(o.kupatToCloserAt))}</div></div>` : ''}
+        <div class="kvcol" style="margin-top:10px">
+            <div class="k">Инфо</div>
+            <div class="v">${escapeHtml(o.details || '')}</div>
+        </div>
+        ${o.kupatNote ? `<div style="color:#d29922; font-size:12px; margin-top:8px">👴 Заметка: ${escapeHtml(o.kupatNote)}</div>` : ''}
+        ${o.finalText ? `<div style="border:1px solid ${escapeAttr(o.finalColor || '#30363d')}; border-radius:10px; padding:8px; margin-top:8px">🏁 ИТОГ: ${escapeHtml(o.finalText)}</div>` : ''}
+    `;
+}
+
+function renderKupatComments(comments){
+    const list = uniqueComments(comments);
+    const rows = list.slice().reverse().map(c => `
+        <div class="comment-item" style="margin-top:8px">
+            <div class="meta">💬 <b>${escapeHtml(roleTitle(c.role || 'kupat'))}</b> <span class="badge">${escapeHtml(c.by || '-')}</span> · ${escapeHtml(c.time || '')}</div>
+            <div class="text">${escapeHtml(c.text || '')}</div>
+            ${c.fileUrl ? renderMedia(c.fileUrl) : ''}
+        </div>
+    `).join('');
+    return `
+      <div style="margin-top:10px">
+        <div style="font-weight:800; margin-bottom:8px">📚 Комментарии</div>
+        ${rows || '<div class="badge">Комментариев пока нет</div>'}
+      </div>
+    `;
+}
+
+function renderKupatCommentEditor(o){
+    return `
+      <div class="comment-box" style="margin-top:10px">
+          <div style="font-weight:800; margin-bottom:8px">📝 Комментарий</div>
+          <textarea id="kupat_comment_${o.id}" placeholder="Напиши комментарий..."></textarea>
+          <div style="margin-top:8px"><input type="file" id="kupat_comment_${o.id}_file" accept="image/*,video/*" /></div>
+          <div style="margin-top:8px">
+              <button class="btn-blue" onclick="saveKupatComment(${o.id}, 'kupat_comment_${o.id}')">Сохранить комментарий</button>
+          </div>
+      </div>
+    `;
+}
+function renderOrderComments(comments){
+    const list = uniqueComments(comments);
+    if(!list.length) return '';
+    return `
+        <div class="comment-list" style="margin-top:10px">
+            ${list.slice().reverse().map(c => `
+                <div class="comment">
+                    <div class="meta">💬 <b>${roleTitle(c.role)}</b> <span class="badge">${c.by}</span> · ${c.time}</div>
+                    <div class="txt">${escapeHtml(c.text)}</div>${c.file ? renderMedia(c.file) : ""}
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function uniqueComments(comments){
+    const list = Array.isArray(comments) ? comments : [];
+    const seen = new Set();
+    return list.filter(c => {
+        const key = [c?.by || '', c?.role || '', c?.text || '', c?.file || '', c?.fileUrl || ''].join('|');
+        if(seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
+function renderOrderCommentEditor(o, cid, canC, canUpload){
+    if(!canC) return '';
+    return `
+        <div class="comment-box" style="margin-top:10px">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px">
+                <div style="font-weight:800">📝 Комментарий</div>
+                <div style="font-size:11px; color:#8b949e">${me.role==='user' ? 'Опер может писать только пока заявка у техника.' : ''}</div>
+            </div>
+            <textarea id="${cid}" placeholder="Напиши комментарий..."></textarea>
+            ${canUpload ? `<div style="margin-top:8px"><input type="file" id="${cid}_file" accept="image/*,video/*" /></div>` : ''}
+            <div style="margin-top:8px">
+                <button class="btn-blue" onclick="saveOrderComment(${o.id}, '${cid}')">Сохранить комментарий</button>
+            </div>
+        </div>
+    `;
+}
+
+
+async function loadKupat() {
+    const r = await fetch(`/api/kupat/list?login=${me.login}&role=${me.role}&view=${me.role==='kupat'?'incoming':'for-closer'}`);
+    const data = await r.json();
+	const rows = Array.isArray(data) ? data : [];
+    window._kupatAllCache = rows;
+
+    const kupatAssignees = [...usersByRole('kupat'), ...usersByRole('admin')].filter((u, i, arr) => u && arr.indexOf(u) === i);
+    const closerAssignees = [...usersByRole('closer'), ...usersByRole('admin')].filter((u, i, arr) => u && arr.indexOf(u) === i);
+
+    const renderIncomingItem = (o) => {
+        const selectedUser = o.kupatUser || me.login;
+        const assigneeSelectId = `kupatAssignee_${o.id}`;
+        return renderCompactClientCard(o, `
+            <select id="${assigneeSelectId}" style="min-width:170px; background:#0b1320; color:#fff; border:1px solid #30363d; border-radius:8px; padding:6px;">
+              ${(kupatAssignees.length ? kupatAssignees : [me.login]).map(u=>`<option value="${escapeAttr(u)}" ${u===selectedUser?'selected':''}>${escapeHtml(u)}</option>`).join('')}
+            </select>
+            <button class="btn-blue" onclick="kupatTakeInWork(${o.id}, '${assigneeSelectId}')">Взять в работу</button>
+            <button class="btn-red" onclick="kupatTakeRefuse(${o.id}, '${assigneeSelectId}')">Отказ</button>
+            <button class="btn-gray" onclick="openKupatPreview(${o.id})">Посмотреть полностью</button>
+        `, 'kupat');
+    };
+
+    const renderCloserItem = (o) => {
+        const closerSel = `kupatCloserSel_${o.id}`;
+        const currentCloser = o.closer || me.login;
+        return renderCompactClientCard(o, `
+            ${(me.role === 'closer' || me.role === 'admin') && o.status === 'kupat_to_closer' ? `
+              <select id="${closerSel}" style="min-width:180px; padding:6px; border-radius:10px; background:#0b1320; color:#fff; border:1px solid #30363d;">
+                ${(closerAssignees.length ? closerAssignees : [me.login]).map(u=>`<option value="${escapeAttr(u)}" ${u===currentCloser?'selected':''}>${escapeHtml(u)}</option>`).join('')}
+              </select>
+              <button class="btn-vio" onclick="kupatAssignCloser(${o.id}, '${closerSel}')">Назначить</button>
+              <button class="btn-blue" onclick="kupatFinal(${o.id})">Финал</button>
+            ` : ''}
+            <button class="btn-gray" onclick="openKupatPreview(${o.id})">Посмотреть полностью</button>
+        `, 'kupat');
+    };
+
+    const sorted = rows.slice().reverse();
+    if (me.role === 'kupat' || me.role === 'admin') {
+        const cols = [
+            { title:'Новые от опера', items: sorted.filter(o => o.status === 'kupat_new' || o.status === 'new') }
+        ];
+        document.getElementById('list-kupat').innerHTML = renderKanbanBoard(cols, renderIncomingItem);
+    } else {
+        const cols = [
+            { title:'Входящие на закрыв', items: sorted.filter(o => o.status === 'kupat_to_closer') },
+            { title:'Финал', items: sorted.filter(o => o.status === 'kupat_final') }
+        ];
+        document.getElementById('list-kupat').innerHTML = renderKanbanBoard(cols, renderCloserItem);
+    }
+}
+
+
+async function loadKupatMyClients() {
+    const r = await fetch(`/api/kupat/list?login=${me.login}&role=${me.role}&view=all`);
+    const data = await r.json();
+    const mine = (Array.isArray(data) ? data : []).filter(o => o.kupatUser === me.login);
+	window._kupatAllCache = Array.isArray(data) ? data : [];
+
+
+    const active = mine.filter(o => o.status === 'kupat_work');
+    const archive = mine.filter(o => ['kupat_ndz','kupat_auto','kupat_ivrit','kupat_refuse','kupat_final'].includes(o.status));
+
+    const renderMine = (o) => renderCompactClientCard(o, `
+        ${o.status === 'kupat_work' ? `
+            <button class="btn-yel" onclick="kupatAction(${o.id}, 'kupat_ndz')">НДЗ</button>
+            <button class="btn-blue" onclick="kupatAction(${o.id}, 'kupat_auto')">АВТО</button>
+            <button class="btn-pur" onclick="kupatAction(${o.id}, 'kupat_ivrit')">ИВРИТ</button>
+            <button style="background:#238636" onclick="kupatAction(${o.id}, 'kupat_to_closer')">Передать</button>
+            <button class="btn-red" onclick="kupatAction(${o.id}, 'kupat_refuse')">Отказ</button>
+            <button class="btn-gray" onclick="moveKupatToCallback(${o.id})">Перезвон</button>
+        ` : ''}
+        <button class="btn-gray" onclick="openKupatPreview(${o.id})">Посмотреть полностью</button>
+    `, 'kupat');
+
+    const workBoard = renderKanbanBoard([{ title:'В работе', items: active.slice().reverse() }], renderMine);
+    const archiveBoard = renderKanbanBoard([{ title:'Архив', items: archive.slice().reverse() }], renderMine);
+    document.getElementById('list-kupat-my-clients').innerHTML = `
+      <div class="stacked-kanban">
+        ${workBoard}
+        ${archiveBoard}
+      </div>
+    `;
+}
+
+
+async function loadKupatMyTransfers() {
+    const r = await fetch(`/api/kupat/list?login=${me.login}&role=${me.role}&view=all`);
+    const data = await r.json();
+    const mineTransfers = (Array.isArray(data) ? data : []).filter(o => o.kupatUser === me.login && (o.status === 'kupat_to_closer' || o.status === 'kupat_final'));
+    const inWork = mineTransfers.filter(o => o.status === 'kupat_to_closer');
+    const closed = mineTransfers.filter(o => o.status === 'kupat_final');
+
+    const renderTransfer = (o) => `
+        <div class="order-item kupat">
+            ${(me.role === 'admin') ? `<button onclick="delItem(${o.id}, 'kupat')" class="btn-red" style="float:right; padding:2px 6px; font-size:10px">X</button>` : ''}
+            <div class="order-head">
+                <div>
+                    <div class="order-title">${escapeHtml(o.clientName || '')}</div>
+                    <div class="order-phone">${escapeHtml(o.phone || '')}</div>
+                </div>
+                <a href="sip:${escapeAttr(o.phone || '')}" style="display:inline-block; background:#2f81f7; color:#fff; padding:8px 12px; border-radius:10px; text-decoration:none; font-size:13px; font-weight:800" onclick="trackEvent('CALL', '${escapeAttr(o.phone || '')}')">📞 ЗВОНОК</a>
+            </div>
+            ${renderKupatInfoBlock(o)}
+        </div>
+    `;
+    document.getElementById('list-kupat-my-transfers').innerHTML = renderKanbanBoard([
+        { title:'В работе', items: inWork.slice().reverse() },
+        { title:'Закрыто', items: closed.slice().reverse() }
+    ], renderTransfer);
+}
+
+
+// --- LOGIC FUNCTIONS ---
+let techActionModalState = null;
+
+function findOrderInCacheById(id){
+    const all = []
+      .concat(ordersCache['tech'] || [])
+      .concat(ordersCache['tech-my'] || [])
+      .concat(ordersCache['returns'] || []);
+    return all.find(x => String(x.id) === String(id)) || null;
+}
+
+function getTechActionUi(type){
+    if(type === 'closer') return { title:'Передать на закрыв', save:'Передать', placeholder:'Информация для закрыва...', reasonOnly:false };
+    if(type === 'refuse') return { title:'ОТКАЗ', save:'Отправить отказ', placeholder:'Укажи причину отказа...', reasonOnly:true };
+    return { title:'НДЗ (Вернуть)', save:'Вернуть', placeholder:'Укажи причину возврата...', reasonOnly:true };
+}
+
+function openTechActionModal(state){
+    techActionModalState = state || null;
+    const box = document.getElementById('techActionModal');
+    const title = document.getElementById('techActionModalTitle');
+    const hint = document.getElementById('techActionModalHint');
+    const opWrap = document.getElementById('techActionOperatorWrap');
+    const opInfo = document.getElementById('techActionOperatorInfo');
+    const ta = document.getElementById('techActionModalText');
+    const saveBtn = document.getElementById('techActionModalSave');
+
+    const ui = getTechActionUi((state || {}).type || 'return');
+    if(title) title.textContent = `🛠 ${ui.title}`;
+    if(hint) hint.textContent = ui.reasonOnly
+      ? 'Только причина от техника. Описание оператора не редактируется.'
+      : 'Проверь и при необходимости отредактируй инфо от оператора перед передачей на закрыв.';
+
+    if(opWrap) opWrap.style.display = ui.reasonOnly ? 'none' : 'block';
+    if(opInfo) opInfo.textContent = (state && state.operatorInfo) ? state.operatorInfo : '-';
+    if(ta){
+      ta.value = (state && state.initialText) ? state.initialText : '';
+      ta.placeholder = ui.placeholder;
+    }
+    if(saveBtn) saveBtn.textContent = ui.save;
+
+    if(box) box.classList.remove('hidden');
+}
+
+function closeTechActionModal(){
+    techActionModalState = null;
+    const box = document.getElementById('techActionModal');
+    if(box) box.classList.add('hidden');
+}
+
+function openTechOrderActionModal(id, type){
+    const o = findOrderInCacheById(id);
+    const operatorInfo = (o && (o.details || o.operatorComment)) ? (o.details || o.operatorComment) : '';
+    const initialText = type === 'closer' ? operatorInfo : '';
+    openTechActionModal({ scope:'order', id, type, operatorInfo, initialText });
+}
+
+function openTechCallbackActionModal(callbackId, type){
+    const arr = window._callbacksCache || [];
+    const item = arr.find(x => x && String(x.id) === String(callbackId));
+    if(!item) return alert('Карточка перезвона не найдена.');
+    const operatorInfo = (item.card && (item.card.details || item.card.operatorComment)) || item.text || '';
+    const initialText = type === 'closer' ? operatorInfo : '';
+    openTechActionModal({ scope:'callback', callbackId, sourceId: item.sourceId, type, operatorInfo, initialText });
+}
+
+async function saveTechActionModal(){
+    const state = techActionModalState;
+    const ta = document.getElementById('techActionModalText');
+    const saveBtn = document.getElementById('techActionModalSave');
+    if(!state) return alert('Нет данных действия.');
+    const info = (ta ? ta.value : '').trim();
+    if(!info) return alert('Заполни комментарий.');
+
+    const status = (state.type === 'return') ? 'return' : (state.type === 'refuse' ? 'refuse' : 'closer');
+
+    if(state.scope === 'order'){
+      const r = await fetch('/api/orders/action', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id: state.id, status, info, techLogin: me.login })
+      });
+      const d = await r.json().catch(()=>({}));
+      if(!r.ok || d.success === false) return alert('Не удалось обновить карточку: ' + (d.error || r.status));
+      closeTechActionModal();
+      await Promise.all([loadOrders('tech'), loadOrders('tech-my'), loadOrders('returns')]);
+      return;
+    }
+
+    if(state.scope === 'callback'){
+      if(!state.sourceId) return alert('Не найдена исходная карточка для изменения статуса.');
+      const r1 = await fetch('/api/orders/action', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id: state.sourceId, status, info, techLogin: me.login })
+      });
+      const d1 = await r1.json().catch(()=>({}));
+      if(!r1.ok || d1.success === false) return alert('Не удалось обновить карточку: ' + (d1.error || r1.status));
+
+      const r2 = await fetch('/api/callbacks/delete', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ login: me.login, id: state.callbackId })
+      });
+      const d2 = await r2.json().catch(()=>({}));
+      if(!r2.ok || d2.success === false) return alert('Не удалось удалить из перезвона: ' + (d2.error || r2.status));
+
+      closeTechActionModal();
+      await Promise.all([loadCallbacks(), loadOrders('tech-my'), loadOrders('returns')]);
+    }
+}
+
+async function orderAction(id, type) {
+    openTechOrderActionModal(id, type);
+}
+
+async function techTakeInWork(id) {
+    const r = await fetch('/api/orders/action', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, status: 'tech_work', info: 'Взял в работу', techLogin: me.login })
+    });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok || d.success === false) return alert('Не удалось взять в работу: ' + (d.error || r.status));
+    await Promise.all([loadOrders('tech'), loadOrders('tech-my')]);
+    await openTab('tech-my');
+}
+
+async function moveTechToCallback(id){
+    const arr = (ordersCache['tech'] || []).concat(ordersCache['tech-my'] || []);
+    let o = arr.find(x => String(x.id) === String(id));
+    if(!o){
+        const r = await fetch(`/api/orders?login=${encodeURIComponent(me.login)}&role=${encodeURIComponent(me.role)}&view=tech`);
+        const rows = await r.json().catch(()=>[]);
+        o = (Array.isArray(rows)?rows:[]).find(x => String(x.id) === String(id));
+    }
+    if(!o) return alert('Клиент не найден. Обнови вкладку.');
+
+    const r1 = await fetch('/api/orders/action', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id: o.id, status: 'tech_callback', info: 'Перезвон', techLogin: me.login })
+    });
+    if(!r1.ok) return alert('Не удалось пометить на перезвон');
+
+    const r2 = await fetchCallbacksApi('/api/callbacks/add', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        login: me.login,
+        role: me.role,
+        source: 'tech',
+        sourceId: o.id,
+        clientName: o.clientName || '',
+        phone: o.phone || '',
+        text: o.details || o.techInfo || o.operatorComment || '',
+        card: {
+          status: o.status || '',
+          operator: o.operator || '',
+          tech: o.tech || '',
+          closer: o.closer || '',
+          details: o.details || '',
+          techInfo: o.techInfo || '',
+          operatorComment: o.operatorComment || '',
+          finalText: o.finalText || '',
+          finalColor: o.finalColor || ''
+        }
+      })
+    });
+    const d2 = await r2.json().catch(()=>({}));
+    if(!r2.ok || !d2.success) return alert('Не удалось добавить в перезвон: ' + (d2.error || r2.status));
+
+    await Promise.all([loadOrders('tech'), loadOrders('tech-my'), loadCallbacks()]);
+}
+
+async function returnToTech(id) {
+    let c = prompt("Ответ для техника:");
+    await fetch('/api/orders/to-tech', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, comment: c })
+    });
+    loadOrders('returns');
+}
+
+async function finalOrder(id) {
+    let t = prompt("Итог сделки:");
+    let c = prompt("Цвет (green, red, yellow)?", "green");
+    if(t) {
+        await fetch('/api/orders/final', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ id, text: t, color: c, closerLogin: me.login })
+        });
+        loadOrders('closer');
+    }
+}
+
+async function kupatAction(id, status) {
+    let note = prompt("Заметка:");
+    await fetch('/api/kupat/action', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, status, note, user: me.login })
+    });
+    await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
+}
+
+async function kupatTakeInWork(id, selectId) {
+    const assignee = document.getElementById(selectId)?.value || me.login;
+    await fetch('/api/kupat/action', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, status: 'kupat_work', user: assignee, note: 'Взял в работу' })
+    });
+    await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
+}
+
+async function kupatTakeRefuse(id, selectId) {
+    const assignee = document.getElementById(selectId)?.value || me.login;
+    let note = prompt("Причина отказа:");
+    await fetch('/api/kupat/action', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, status: 'kupat_refuse', user: assignee, note: note || 'Отказ' })
+    });
+    await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
+}
+
+async function kupatAssignCloser(id, selectId) {
+    const closer = document.getElementById(selectId)?.value || me.login;
+    const r = await fetch('/api/kupat/assign-closer', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id, closer, requesterRole: me.role })
+    });
+    if(!r.ok){
+        const t = await r.text();
+        alert('Не удалось назначить закрыва: ' + t);
+        return;
+    }
+    await Promise.all([loadKupat(), loadKupatMyTransfers()]);
+}
+
+async function saveKupatComment(id, textareaId){
+    const el = document.getElementById(textareaId);
+    if(!el) return;
+    const text = (el.value || '').trim();
+    const fileEl = document.getElementById(textareaId + '_file');
+    const file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+    if(!text && !file) return alert('Пустой комментарий.');
+
+    const fd = new FormData();
+    fd.append('id', id);
+    fd.append('login', me.login);
+    fd.append('role', me.role);
+    fd.append('text', text);
+    if(file) fd.append('file', file);
+
+    const r = await fetch('/api/kupat/comment', {
+        method:'POST',
+        body: fd
+    });
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok || !d.success){
+        return alert('Не удалось сохранить комментарий: ' + (d.error || r.status));
+    }
+
+    el.value = '';
+    if(fileEl) fileEl.value = '';
+    await Promise.all([loadKupatMyClients(), loadKupatMyTransfers(), loadKupat()]);
+}
+
+async function kupatFinal(id) {
+    let t = prompt("Итог сделки:");
+    let c = prompt("Цвет?", "green");
+    if(t) {
+        await fetch('/api/kupat/final', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ id, text: t, color: c, closer: me.login })
+        });
+        await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
+    }
+}
+
+async function delItem(id, type) {
+    if(confirm("Удалить навсегда?")) {
+        await fetch('/api/delete-item', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ id, type })
+        });
+        type === 'orders' ? loadOrders('tech') : loadKupat();
+    }
+}
+
+// --- ADMIN & DB ---
+async function loadLogs() {
+    const r = await fetch('/api/call-logs?role=admin');
+    const d = await r.json();
+    document.querySelector('#table-logs tbody').innerHTML = d.reverse().slice(0,100).map(l => `
+        <tr>
+            <td>${l.time}</td><td><b>${l.user}</b></td><td>${l.phone}</td>
+            <td><span class="badge">${l.status}</span></td><td>${(l.note||'').substring(0,30)}...</td>
+        </tr>
+    `).join('');
+}
+
+async function loadStats() {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+    const list = d.byUsers || [];
+    // Таблица сотрудников (админка)
+    document.getElementById('table-stats').innerHTML =
+        `<tr>
+            <th>Логин</th>
+            <th>Роль</th>
+            <th>Баланс</th>
+            <th>Трубок</th>
+            <th>Передал</th>
+            <th>На Купат</th>
+            <th>X</th>
+        </tr>` +
+        list.map(u => {
+            const c = u.calls || {};
+            return `
+            <tr>
+                <td>${escapeHtml(u.login)}</td>
+                <td>${escapeHtml(roleTitle(u.role))}</td>
+                <td>${Number(u.balance || 0)}</td>
+                <td>${Number(c.total || 0)}</td>
+                <td>${Number(c.passedToTech || 0)}</td>
+                <td>${Number(c.sentToKupat || 0)}</td>
+                <td><button onclick="delUser('${String(u.login).replace(/'/g, "\\'")}')" class="btn-red" style="padding:2px 5px">X</button></td>
+            </tr>`;
+        }).join('');
+
+    // Селект для назначения баланса
+    const sel = document.getElementById('balUser');
+    if (sel) {
+        sel.innerHTML = list.map(u => `<option value="${escapeHtml(u.login)}">${escapeHtml(u.login)} (${escapeHtml(roleTitle(u.role))})</option>`).join('');
+    }
+}
+
+async function uploadDb() {
+    const fd = new FormData();
+    fd.append('file', document.getElementById('fileIn').files[0]);
+    await fetch('/api/upload', {method:'POST', body:fd});
+    await loadDbs();
+}
+
+async function loadDbs() {
+    const r = await fetch('/api/databases?view=compact');
+    const d = await r.json();
+    dbListCache = Array.isArray(d) ? d : (Array.isArray(d.active) ? d.active : []);
+    const sel = document.getElementById('dbSel');
+    sel.innerHTML = dbListCache.map(db => `<option value="${db.id}">${db.name}</option>`).join('');
+    const activeDb = dbListCache.find(db => db.isActive) || null;
+    if(activeDb) sel.value = String(activeDb.id);
+    renderAdminDbMeta();
+    syncDbAllowDupToggle();
+}
+
+async function loadDbsDetails(page = 1, limit = 20) {
+    const r = await fetch(`/api/databases?view=full&page=${encodeURIComponent(page)}&limit=${encodeURIComponent(limit)}`);
+    const d = await r.json();
+    dbListDetailsCache = (d && Array.isArray(d.active)) ? d.active : [];
+    dbDeletedListCache = (d && Array.isArray(d.deleted)) ? d.deleted : [];
+    dbDeletedPagination = (d && d.pagination) ? d.pagination : { page: 1, limit, total: 0, totalPages: 1 };
+    syncDbAllowDupToggle();
+}
+
+function renderAdminDbMeta(){
+    const activeDb = dbListCache.find(db => db.isActive) || null;
+    const nameEl = document.getElementById('dbActiveName');
+    const remEl = document.getElementById('dbActiveRemaining');
+    if(nameEl) nameEl.textContent = activeDb ? String(activeDb.name || '—') : '—';
+    if(remEl) remEl.textContent = activeDb ? String(Number(activeDb.availableRows || 0)) : '—';
+}
+
+function syncDbAllowDupToggle(){
+    const sel = document.getElementById('dbSel');
+    const cb = document.getElementById('dbAllowDup');
+    if(!sel || !cb) return;
+    const current = dbListDetailsCache.find(db => String(db.id) === String(sel.value));
+    cb.checked = !!(current && current.allowDuplicates);
+}
+
+async function activateDb() {
+    const dbId = document.getElementById('dbSel').value;
+    if(!dbId) return alert('Выбери базу');
+    const allowDuplicates = !!document.getElementById('dbAllowDup')?.checked;
+    await fetch('/api/set-active-db', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ dbId, allowDuplicates })
+    });
+    alert(allowDuplicates ? "База выбрана! Повторы для этой базы разрешены." : "База выбрана!");
+    await loadDbs();
+}
+
+function fmtDbDate(v){
+    return v ? formatUTC2(v) : '—';
+}
+
+function closeDbPickerModal(){
+    const box = document.getElementById('dbPickerModal');
+    if(box) box.classList.add('hidden');
+}
+
+async function openDbPickerModal(){
+    const box = document.getElementById('dbPickerModal');
+    if(!box) return;
+    await loadDbs();
+	await loadDbsDetails(1, dbDeletedPagination.limit || 20);
+    renderDbPickerRows();
+    box.classList.remove('hidden');
+}
+
+async function changeDeletedDbPage(delta){
+    const nextPage = Number(dbDeletedPagination.page || 1) + Number(delta || 0);
+    const totalPages = Number(dbDeletedPagination.totalPages || 1);
+    if(nextPage < 1 || nextPage > totalPages) return;
+    await loadDbsDetails(nextPage, dbDeletedPagination.limit || 20);
+    renderDbPickerRows();
+}
+
+function pickDbFromModal(dbId){
+    const sel = document.getElementById('dbSel');
+    if(sel) sel.value = String(dbId);
+    syncDbAllowDupToggle();
+    closeDbPickerModal();
+}
+
+function renderDbPickerRows(){
+    const box = document.getElementById('dbPickerRows');
+    if(!box) return;
+    if(!dbListDetailsCache.length && !dbDeletedListCache.length){
+        box.innerHTML = '<div class="muted">Базы не загружены.</div>';
+        return;
+    }
+
+    const activeCol = dbListDetailsCache.filter(db => db.isActive);
+    const readyCol = dbListDetailsCache.filter(db => !db.isActive && Number(db.availableRows || 0) > 0);
+    const emptyCol = dbListDetailsCache.filter(db => !db.isActive && Number(db.availableRows || 0) <= 0);
+
+    const renderDbCard = (db) => `
+      <div class="order-item" style="min-height:auto; padding:12px; border-left-color:${db.isActive ? '#238636' : '#30363d'}; margin-bottom:10px;">
+        <div class="order-head">
+          <div>
+            <div class="order-title" style="font-size:15px">${escapeHtml(db.name || '')}</div>
+            <div class="pillbar" style="margin-top:6px">
+              <span class="pill"><small>ID</small><span class="who">${escapeHtml(String(db.id || ''))}</span></span>
+              <span class="pill"><small>Активна</small><span class="who">${db.isActive ? 'Да' : 'Нет'}</span></span>
+              <span class="pill"><small>Повторы</small><span class="who">${db.allowDuplicates ? 'Да' : 'Нет'}</span></span>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+            <button class="btn-blue" onclick="pickDbFromModal('${escapeAttr(String(db.id))}')">Выбрать</button>
+            <button class="btn-red" onclick="deleteDb('${escapeAttr(String(db.id))}')">Удалить</button>
+          </div>
+        </div>
+        <div class="db-meta-grid">
+          <div class="db-meta-item"><div class="k">Загружена</div><div class="v">${escapeHtml(fmtDbDate(db.uploadedAt))}</div></div>
+          <div class="db-meta-item"><div class="k">Последняя активация</div><div class="v">${escapeHtml(fmtDbDate(db.lastActivatedAt))}</div></div>
+          <div class="db-meta-item"><div class="k">Строк всего</div><div class="v">${Number(db.totalRows || 0)}</div></div>
+          <div class="db-meta-item"><div class="k">Не прозвонено</div><div class="v">${Number(db.availableRows || 0)}</div></div>
+        </div>
+      </div>
+    `;
+
+    const renderDeletedCard = (db) => `
+      <div class="order-item" style="min-height:auto; padding:12px; border-left-color:#da3633; margin-bottom:10px; opacity:.92;">
+        <div class="order-title" style="font-size:14px">${escapeHtml(db.name || '')}</div>
+        <div class="pillbar" style="margin-top:6px">
+          <span class="pill"><small>Удалена</small><span class="who">${escapeHtml(fmtDbDate(db.deletedAt))}</span></span>
+          <span class="pill"><small>Кем</small><span class="who">${escapeHtml(db.deletedBy || '-')}</span></span>
+        </div>
+        <div class="db-meta-grid">
+          <div class="db-meta-item"><div class="k">Загружена</div><div class="v">${escapeHtml(fmtDbDate(db.uploadedAt))}</div></div>
+          <div class="db-meta-item"><div class="k">Последняя активация</div><div class="v">${escapeHtml(fmtDbDate(db.lastActivatedAt))}</div></div>
+          <div class="db-meta-item"><div class="k">Строк всего</div><div class="v">${Number(db.totalRows || 0)}</div></div>
+          <div class="db-meta-item"><div class="k">Не прозвонено на момент удаления</div><div class="v">${Number(db.availableRows || 0)}</div></div>
+        </div>
+      </div>
+    `;
+
+    box.innerHTML = `
+      <div class="db-kanban">
+        <div class="db-col">
+          <h4>✅ Активные / в работе (${activeCol.length})</h4>
+          ${activeCol.map(renderDbCard).join('') || '<div class="muted">Пусто</div>'}
+        </div>
+        <div class="db-col">
+          <h4>📞 С доступными номерами (${readyCol.length})</h4>
+          ${readyCol.map(renderDbCard).join('') || '<div class="muted">Пусто</div>'}
+        </div>
+        <div class="db-col">
+          <h4>📦 Пустые / исчерпанные (${emptyCol.length})</h4>
+          ${emptyCol.map(renderDbCard).join('') || '<div class="muted">Пусто</div>'}
+        </div>
+      </div>
+      <div class="db-col" style="margin-top:12px;">
+        <h4>🗑 История удалённых (${Number(dbDeletedPagination.total || 0)})</h4>
+        ${dbDeletedListCache.slice().reverse().map(renderDeletedCard).join('') || '<div class="muted">Нет удалённых баз.</div>'}
+        <div style="display:flex; align-items:center; gap:8px; justify-content:flex-end; margin-top:8px;">
+          <button class="btn-gray" onclick="changeDeletedDbPage(-1)" ${Number(dbDeletedPagination.page || 1) <= 1 ? 'disabled' : ''}>← Назад</button>
+          <span class="muted">Страница ${Number(dbDeletedPagination.page || 1)} / ${Number(dbDeletedPagination.totalPages || 1)}</span>
+          <button class="btn-gray" onclick="changeDeletedDbPage(1)" ${Number(dbDeletedPagination.page || 1) >= Number(dbDeletedPagination.totalPages || 1) ? 'disabled' : ''}>Вперёд →</button>
+        </div>
+      </div>
+    `;
+}
+
+async function deleteDb(dbId){
+    const db = dbListDetailsCache.find(x => String(x.id) === String(dbId));
+    if(!db) return alert('База не найдена');
+    if(!confirm(`Удалить базу "${db.name}"? История прозвонов сохранится.`)) return;
+    const r = await fetch('/api/databases/delete', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ dbId, login: me.login, role: me.role })
+    });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok || !d.success) return alert('Не удалось удалить базу: ' + (d.error || r.status));
+    await loadDbs();
+    await loadDbsDetails(dbDeletedPagination.page || 1, dbDeletedPagination.limit || 20);
+    if((dbDeletedPagination.page || 1) > (dbDeletedPagination.totalPages || 1)){
+      await loadDbsDetails(dbDeletedPagination.totalPages || 1, dbDeletedPagination.limit || 20);
+    }
+    renderDbPickerRows();
+}
+
+async function addUser() {
+    await fetch('/api/users/add', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ 
+            login: document.getElementById('nL').value, 
+            pass: document.getElementById('nP').value, 
+            role: document.getElementById('nR').value, balance: 0 })
+    });
+    loadStats();
+}
+
+async function delUser(login) {
+    if(confirm("Удалить сотрудника?")) {
+        await fetch('/api/users/delete', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({login, requesterRole: me?.role})
+        });
+        loadStats();
+    }
+}
+
+// INCOME (admin) — salary calculator
+function _n(v) {
+    const x = parseFloat(String(v).replace(',', '.'));
+    return isFinite(x) ? x : 0;
+}
+function _fmt(x) {
+    // keep .5 etc, but trim trailing zeros
+    const s = (Math.round((x + Number.EPSILON) * 100) / 100).toString();
+    return s.includes('.') ? s.replace(/0+$/,'').replace(/\.$/,'') : s;
+}
+function incomeCalc() {
+    if(!me || me.role !== 'admin') return;
+
+    const sum = _n(document.getElementById('inc_sum')?.value);
+    const kuraPct = _n(document.getElementById('inc_kura')?.value);
+    const clientPct = _n(document.getElementById('inc_client_pct')?.value);
+    const divBy = Math.max(_n(document.getElementById('inc_div')?.value), 0);
+    const mulBy = _n(document.getElementById('inc_mul')?.value);
+
+    const kuraSum = sum * (kuraPct/100);
+    const afterKura = sum - kuraSum;
+
+    // IMPORTANT: по твоему примеру "итоговая сумма" — это % на клиента ОТ остатка (не остаток + %)
+    const clientSum = afterKura * (clientPct/100);
+
+    const afterDiv = divBy > 0 ? (clientSum / divBy) : 0;
+    const total = afterDiv * mulBy;
+
+    const set = (id,val) => { const el=document.getElementById(id); if(el) el.textContent = val; };
+
+    set('inc_kura_sum', `${_fmt(kuraPct)}% = ${_fmt(kuraSum)}`);
+    set('inc_after_kura', _fmt(afterKura));
+    set('inc_client_pct_out', `${_fmt(clientPct)}%`);
+    set('inc_client_sum', _fmt(clientSum));
+    set('inc_div_res', divBy>0 ? `${_fmt(clientSum)} / ${_fmt(divBy)} = ${_fmt(afterDiv)}` : '—');
+    set('inc_total', `${_fmt(afterDiv)} × ${_fmt(mulBy)} = ${_fmt(total)}`);
+}
+
+function incomeReset() {
+    if(!me || me.role !== 'admin') return;
+    document.getElementById('inc_sum').value = 10000;
+    document.getElementById('inc_kura').value = 14;
+    document.getElementById('inc_client_pct').value = 15;
+    document.getElementById('inc_div').value = 4;
+    document.getElementById('inc_mul').value = 36;
+    incomeCalc();
+}
+
+function wireIncomeInputs() {
+    const ids = ['inc_sum','inc_kura','inc_client_pct','inc_div','inc_mul'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.addEventListener('input', incomeCalc);
+    });
+}
+
+
+async function loadMyStats(){
+    if(!me) return;
+    // ensure container exists
+    let box = document.getElementById('myStatsBox');
+    if(!box){    }
+    if(box) box.textContent = 'Загрузка...';
+    try{
+        const r = await fetch(`/api/me-stats?login=${encodeURIComponent(me.login)}&role=${encodeURIComponent(me.role)}`, {cache:'no-store'});
+        if(!r.ok){
+            const t = await r.text().catch(()=> '');
+            throw new Error(`HTTP ${r.status} ${t}`);
+        }
+        const data = await r.json();
+        const bal = (data.balance ?? 0);
+        const s = data.stats || {};
+        const lines = [];
+        // Баланс отдельно
+        lines.push(`<div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap">
+            <div>
+                <div class="muted" style="font-size:12px">Ваш баланс</div>
+                <div style="font-size:28px; font-weight:800">${Number(bal).toLocaleString('ru-RU')}</div>
+            </div>
+            <div class="muted" style="font-size:12px">Обновлено: ${escapeHtml(formatUTC2(new Date().toISOString()))}</div>
+        </div>`);
+
+        // Кнопки обзвона
+        const calls = data.calls || {};
+        lines.push(`<hr style="border:0; border-top:1px solid #333; margin:12px 0">`);
+        lines.push(`<div style="font-weight:800; margin-bottom:6px">📞 Обзвон (нажатые кнопки)</div>`);
+        lines.push(`<div class="grid2">
+            <div class="mini">Всего нажатий: <b>${calls.total ?? 0}</b></div>
+            <div class="mini">Передал (трубка): <b>${calls.passedToTech ?? 0}</b></div>
+            <div class="mini">На Купат: <b>${calls.sentToKupat ?? 0}</b></div>
+            <div class="mini"></div>
+        </div>`);
+
+        // Статистика по клиентам у закрыва
+        const cl = data.closer || {};
+        lines.push(`<hr style="border:0; border-top:1px solid #333; margin:12px 0">`);
+        if(me.role === 'user'){
+            lines.push(`<div style="font-weight:800; margin-bottom:6px">💰 Мои клиенты у закрыва</div>`);
+            lines.push(`<div class="grid2">
+                <div class="mini">Клиентов попало к закрыву: <b>${cl.operatorToCloser ?? 0}</b></div>
+                <div class="mini">Успешных закрытий (final): <b>${cl.operatorFinalByCloser ?? 0}</b></div>
+            </div>`);
+        } else if(me.role === 'closer'){
+            lines.push(`<div style="font-weight:800; margin-bottom:6px">💼 Моя работа (закрыв)</div>`);
+            lines.push(`<div class="grid2">
+                <div class="mini">Клиентов в работе/истории: <b>${cl.closerWorked ?? 0}</b></div>
+                <div class="mini">Успешных (final): <b>${cl.closerFinal ?? 0}</b></div>
+            </div>`);
+        } else {
+            // для техник/купат: показываем только общую пару, если сервер дал
+            lines.push(`<div style="font-weight:800; margin-bottom:6px">💰 Клиенты у закрыва</div>`);
+            lines.push(`<div class="grid2">
+                <div class="mini">Клиентов попало к закрыву (по вашим): <b>${cl.operatorToCloser ?? 0}</b></div>
+                <div class="mini">Успешных (final): <b>${cl.operatorFinalByCloser ?? 0}</b></div>
+            </div>`);
+        }
+
+        // Доп: заявки (если есть)
+        if(s.main){
+            lines.push(`<hr style="border:0; border-top:1px solid #333; margin:12px 0">`);
+            lines.push(`<div style="font-weight:800; margin-bottom:6px">📋 Основные заявки</div>`);
+            lines.push(`<div class="grid2">
+                <div class="mini">Всего: <b>${Number(s.main.total||0)}</b></div>
+                <div class="mini">Новые/доработка/возврат: <b>${Number(s.main.new||0)}</b></div>
+                <div class="mini">На закрыва: <b>${Number(s.main.closer||0)}</b></div>
+                <div class="mini">Финал: <b>${Number(s.main.final||0)}</b></div>
+            </div>`);
+        }
+
+        if(s.kupat){
+            lines.push(`<hr style="border:0; border-top:1px solid #333; margin:12px 0">`);
+            lines.push(`<div style="font-weight:800; margin-bottom:6px">👴 Поток Купат</div>`);
+            lines.push(`<div class="grid2">
+                <div class="mini">Всего: <b>${Number(s.kupat.total||0)}</b></div>
+                <div class="mini">Входящие: <b>${Number(s.kupat.incoming||0)}</b></div>
+                <div class="mini">К финалу: <b>${Number(s.kupat.final||0)}</b></div>
+                <div class="mini"></div>
+            </div>`);
+        }
+
+        // Админу — таблица по всем пользователям (как раньше)
+        if(me.role === 'admin'){
+            const rr = await fetch('/api/stats', {cache:'no-store'});
+            const all = await rr.json();
+            const rows = (all.byUsers || []).map(u=>{
+                const c = u.calls || {};
+                const m = u.main || {};
+                const k = u.kupat || {};
+                return `<tr>
+                    <td><b>${escapeHtml(u.login)}</b><div class="muted" style="font-size:12px">${escapeHtml(roleTitle(u.role))}</div></td>
+                    <td class="right"><b>${Number(u.balance||0)}</b></td>
+                    <td class="right">${Number(c.total||0)}</td>
+                    <td class="right">${Number(c.passedToTech||0)}</td>
+                    <td class="right">${Number(c.sentToKupat||0)}</td>
+                    <td class="right">${Number(m.created||0)}</td>
+                    <td class="right">${Number(m.techTook||0)}</td>
+                    <td class="right">${Number(m.closerFinal||0)}</td>
+                    <td class="right">${Number(k.fromOperator||0)}</td>
+                    <td class="right">${Number(k.kupatToCloser||0)}</td>
+                    <td class="right">${Number(k.kupatFinalByCloser||0)}</td>
+                </tr>`;
+            }).join('');
+
+            lines.push(`<hr style="border:0; border-top:1px solid #333; margin:12px 0">`);
+            lines.push(`<div style="font-weight:800; margin-bottom:8px">👥 Статистика всех пользователей</div>`);
+            lines.push(`<div class="tableWrap">
+                <table class="tbl">
+                    <thead>
+                        <tr>
+                            <th>Пользователь</th>
+                            <th class="right">Баланс</th>
+                            <th class="right">Трубок</th>
+                            <th class="right">Передал</th>
+                            <th class="right">На Купат</th>
+                            <th class="right">Создал заявок</th>
+                            <th class="right">Взял как тех</th>
+                            <th class="right">Финал как закрыв</th>
+                            <th class="right">От опер (Купат)</th>
+                            <th class="right">Купат→Закрыв</th>
+                            <th class="right">Купат финал</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows || `<tr><td colspan="11" class="muted">Нет данных</td></tr>`}</tbody>
+                </table>
+            </div>`);
+        }
+
+        if(box) box.innerHTML = lines.join('');
+    }catch(e){
+        if(box) box.innerHTML = `<div style="color:#ff7b72; font-weight:700">Ошибка статистики</div>
+        <div class="muted" style="margin-top:6px; white-space:pre-wrap">${escapeHtml(e && e.message ? e.message : e)}</div>`;
+    }
+}
+
+
+async function refreshUsersForAdmin(){
+    if(!me || me.role!=='admin') return;
+    try{
+        const r = await fetch('/api/users');
+        const data = await r.json();
+        const sel = document.getElementById('balUser');
+        if(!sel) return;
+        sel.innerHTML = data.users.map(u=>`<option value="${escapeHtml(u.login)}">${escapeHtml(u.login)} (${escapeHtml(u.role)})</option>`).join('');
+    }catch(e){}
+}
+
+async function setBalance(){
+    if(!me || me.role!=='admin') return;
+    const login = document.getElementById('balUser').value;
+    const balance = Number(document.getElementById('balVal').value || 0);
+    await fetch('/api/admin/set-balance', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ login, balance, requesterRole: me.role })
+    });
+    await await loadMyStats();
+}
+
+// Ensure login handler works even if inline handlers are blocked
+document.addEventListener('DOMContentLoaded', () => {
+    const dbSel = document.getElementById('dbSel');
+    if(dbSel) dbSel.addEventListener('change', syncDbAllowDupToggle);
+
+    const btn = document.getElementById('btnLogin');
+    if (btn) btn.addEventListener('click', (e) => { e.preventDefault(); login(); });
+    const pass = document.getElementById('pasIn');
+    if (pass) pass.addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+});
+// expose for any remaining inline usage
+window.login = login;
+
+
+
+
+
+/* ===== Заметки (личные) ===== */
+let notesModalPayload = null;
+
+function openNotesModal(payload, hintText, initialComment){
+  notesModalPayload = payload || null;
+  const box = document.getElementById('notesModal');
+  const hint = document.getElementById('notesModalHint');
+  const ta = document.getElementById('notesModalText');
+  const wrap = document.getElementById('notesModalFileWrap');
+  const fileEl = document.getElementById('notesModalFile');
+
+  if(hint) hint.textContent = hintText || '';
+  if(ta) ta.value = (initialComment || '');
+  if(fileEl) fileEl.value = '';
+
+  const canFile = (me.role === 'tech' || me.role === 'closer' || me.role === 'admin');
+  if(wrap) wrap.style.display = canFile ? 'block' : 'none';
+
+  if(box) box.classList.remove('hidden');
+}
+
+function closeNotesModal(){
+  notesModalPayload = null;
+  const box = document.getElementById('notesModal');
+  if(box) box.classList.add('hidden');
+}
+
+async function saveNotesModal(){
+  const ta = document.getElementById('notesModalText');
+  const comment = (ta ? ta.value : '').trim();
+  if(!notesModalPayload) return alert('Нет данных заметки.');
+
+  const fileEl = document.getElementById('notesModalFile');
+  const file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+
+  if(!comment && !file) return alert('Напиши комментарий или прикрепи файл.');
+
+  // EDIT mode if payload has id
+  if(notesModalPayload.id){
+    const fd = new FormData();
+    fd.append('login', me.login);
+    fd.append('role', me.role);
+    fd.append('id', notesModalPayload.id);
+    fd.append('comment', comment);
+    if(file) fd.append('file', file);
+
+    const r = await fetch('/api/notes/update', {
+      method:'PUT',
+      body: fd
+    });
+    if(!r.ok){
+      const t = await r.text().catch(()=> '');
+      return alert('Не удалось обновить заметку: ' + (t || r.status));
+    }
+    closeNotesModal();
+    const tab = document.getElementById('tab-notes');
+    if(tab && !tab.classList.contains('hidden')) await loadNotes();
+    return;
+  }
+
+  const noteObj = {
+    ...notesModalPayload,
+    comment,
+    createdAt: new Date().toISOString()
+  };
+
+  const fd = new FormData();
+  fd.append('login', me.login);
+  fd.append('role', me.role);
+  fd.append('note', JSON.stringify(noteObj));
+  if(file) fd.append('file', file);
+
+  const r = await fetch('/api/notes/add', { method:'POST', body: fd });
+  if(!r.ok){
+    const t = await r.text().catch(()=> '');
+    return alert('Не удалось сохранить заметку: ' + (t || r.status));
+  }
+  const shouldAdvanceDial = notesModalPayload && notesModalPayload.source === 'dial';
+  const dialStatus = shouldAdvanceDial ? 'В ЗАМЕТКИ' : '';
+  closeNotesModal();
+  const tab = document.getElementById('tab-notes');
+  if(tab && !tab.classList.contains('hidden')) await loadNotes();
+  if(shouldAdvanceDial) await advanceDialAfterTransfer(dialStatus);
+}
+
+
+async function loadNotes(){
+  const list = document.getElementById('notes-list');
+  if(list) list.innerHTML = '<div class="muted">Загрузка...</div>';
+  const r = await fetch('/api/notes?login=' + encodeURIComponent(me.login));
+  if(!r.ok){
+    if(list) list.innerHTML = '<div style="color:#ff7b72">Ошибка загрузки заметок</div>';
+    return;
+  }
+  const data = await r.json();
+  window._notesCache = Array.isArray(data) ? data : [];
+  renderNotes(window._notesCache);
+}
+
+function renderNotes(items){
+  const list = document.getElementById('notes-list');
+  if(!list) return;
+  if(!items.length){
+    list.innerHTML = '<div class="muted">Заметок пока нет.</div>';
+    return;
+  }
+  list.innerHTML = items.slice().reverse().map(n => {
+    const when = n.createdAt ? formatUTC2(n.createdAt) : '';
+    return `
+      <div class="order-item" style="border-color:#7c3aed;">
+        <div class="order-grid">
+          <div class="order-head">
+            <div>
+              <div class="order-title">${escapeHtml(n.clientName || '')}</div>
+              <div class="order-phone">${escapeHtml(n.phone || '')} <span class="badge">Заметки</span></div>
+            </div>
+            ${n.phone ? `<a href="sip:${escapeAttr(n.phone)}" class="sip-btn" onclick="trackEvent('CALL', '${escapeAttr(n.phone)}')">📞 Позвонить</a>` : ''}
+            <div style="display:flex; gap:8px; align-items:center;">
+              <button class="btn-pur" onclick="editNote('${escapeAttr(n.id)}')">✏️</button>
+              <button class="btn-red" onclick="deleteNote('${escapeAttr(n.id)}')">🗑</button>
+            </div>
+          </div>
+
+          <div class="pillbar">
+            <span class="pill"><small>Автор</small> <span class="who">${escapeHtml(n.owner || '')}</span></span>
+            <span class="pill"><small>Когда</small> <span class="who">${escapeHtml(when)}</span></span>
+          </div>
+
+          ${n.text ? `<div class="kvcol"><div class="k">Текст</div><div class="v">${escapeHtml(n.text)}</div></div>` : ''}
+          ${n.file ? `<div class="kvcol"><div class="k">Файл</div><div class="v">${renderMedia(n.file)}</div></div>` : ''}
+          <div class="kvcol"><div class="k">Комментарий</div><div class="v">${escapeHtml(n.comment || '')}</div></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Оператор: текущий клиент обзвона -> заметки
+function addCurrentToNotes(){
+  const c = window.curClient || null;
+  if(!c || !c.phone) return alert('Сначала нажми "НАЧАТЬ ОБЗВОН".');
+  const noteEl = document.getElementById('note');
+  const baseText = (noteEl ? noteEl.value : '').trim();
+  const payload = {
+    source: 'dial',
+    clientName: c.name || '',
+    phone: c.phone || '',
+    text: baseText
+  };
+  openNotesModal(payload, `Клиент: ${c.name || ''} · ${c.phone || ''}`);
+}
+
+// Закрыв: любая заявка (дублируем в заметки, не удаляем)
+const ordersCache = {};
+async function addOrderToNotes(orderId, listType){
+  const arr = ordersCache[listType] || [];
+  const o = arr.find(x => String(x.id) === String(orderId));
+  if(!o) return alert('Не удалось найти заявку в списке.');
+  const payload = {
+    source: 'order',
+    orderId: o.id,
+    clientName: o.clientName || '',
+    phone: o.phone || '',
+    text: [
+      o.details ? ('Инфо: ' + o.details) : '',
+      o.techInfo ? ('Тех инфо: ' + o.techInfo) : '',
+      o.operatorComment ? ('Опер инфо: ' + o.operatorComment) : ''
+    ].filter(Boolean).join('\n')
+  };
+  openNotesModal(payload, `Заявка #${o.id} · ${o.clientName || ''} · ${o.phone || ''}`);
+}
+
+function editNote(id){
+  // find note in last loaded notes cache if exists in window._notesCache
+  const items = window._notesCache || [];
+  const n = items.find(x => x && String(x.id) === String(id));
+  if(!n) return alert('Не удалось найти заметку.');
+  const payload = { ...n, id: n.id };
+  openNotesModal(payload, `Редактирование: ${n.clientName || ''} · ${n.phone || ''}`, n.comment || '');
+}
+
+async function deleteNote(id){
+  if(!confirm('Удалить заметку?')) return;
+  const r = await fetch('/api/notes/delete', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ login: me.login, id })
+  });
+  if(!r.ok){
+    const t = await r.text().catch(()=> '');
+    return alert('Не удалось удалить: ' + (t || r.status));
+  }
+  await loadNotes();
+}
+
+
+async function fetchCallbacksApi(path, opts){
+  let r = await fetch(path, opts);
+  if(r && r.status === 404){
+    const alt = path
+      .replace('/api/callbacks/', '/api/callback/')
+      .replace('/api/callbacks?', '/api/callback?');
+    if(alt !== path) r = await fetch(alt, opts);
+  }
+  return r;
+}
+
+async function addCurrentToCallbacks(){
+  const c = window.curClient || null;
+  if(!c || !c.phone) return alert('Сначала нажми "НАЧАТЬ ОБЗВОН".');
+  const noteEl = document.getElementById('note');
+  const text = (noteEl ? noteEl.value : '').trim();
+  const r = await fetch('/api/callbacks/add', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ login: me.login, role: me.role, source:'dial', clientName: c.name || '', phone: c.phone || '', text })
+  });
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok || !d.success) return alert('Не удалось добавить в перезвон: ' + (d.error || r.status));
+  await advanceDialAfterTransfer('В ПЕРЕЗВОН');
+}
+
+async function advanceDialAfterTransfer(status){
+  const c = window.curClient || null;
+  if(!c || !c.phone) return;
+  const note = (document.getElementById('note')?.value || '').trim();
+
+  try{
+    await fetch('/api/save-result', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ status, user: me.login, phone: c.phone, name: c.name, note })
+    });
+  }catch(e){
+    // не блокируем переход к следующему клиенту
+  }
+
+  await nextClient();
+}
+
+async function moveKupatToCallback(id){
+  const arr = window._kupatMyClientsCache || [];
+  let o = arr.find(x => String(x.id) === String(id));
+
+  if(!o){
+    const rList = await fetch(`/api/kupat/list?login=${encodeURIComponent(me.login)}&role=${encodeURIComponent(me.role)}&view=all`);
+    const list = await rList.json().catch(() => []);
+    o = (Array.isArray(list) ? list : []).find(x => String(x.id) === String(id));
+  }
+  if(!o) return alert('Клиент не найден. Обнови вкладку.');
+
+  const r1 = await fetch('/api/kupat/action', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ id: o.id, status: 'kupat_callback', note: 'Перезвон', user: me.login })
+  });
+  if(!r1.ok) return alert('Не удалось пометить на перезвон');
+
+  const r2 = await fetchCallbacksApi('/api/callbacks/add', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ login: me.login, role: me.role, source:'kupat', sourceId: o.id, clientName: o.clientName || '', phone: o.phone || '', text: o.details || '' })
+  });
+  const d2 = await r2.json().catch(()=>({}));
+  if(!r2.ok || !d2.success) return alert('Не удалось добавить в перезвон: ' + (d2.error || r2.status));
+
+  await Promise.all([loadKupatMyClients(), loadCallbacks()]);
+}
+
+async function loadCallbacks(){
+  const el = document.getElementById('list-callbacks');
+  if(!el) return;
+  el.innerHTML = '<div class="badge">Загрузка...</div>';
+  const r = await fetch('/api/callbacks?login=' + encodeURIComponent(me.login));
+  const data = await r.json().catch(() => []);
+  const rows = Array.isArray(data) ? data : [];
+  if(!rows.length){ el.innerHTML = '<div class="muted">Список перезвона пуст.</div>'; return; }
+
+  const canToTech = me.role === 'admin';
+  const canToCloser = me.role === 'admin';
+  const canTechCallbackActions = me.role === 'tech' || me.role === 'admin';
+  const canOperatorCallbackActions = me.role === 'user' || me.role === 'admin';
+  const canKupatCallbackActions = me.role === 'kupat';
+
+  const renderCallbackCard = (c) => {
+    const techActions = canTechCallbackActions
+      ? `<button class="btn-yel" onclick="openTechCallbackActionModal('${escapeAttr(c.id)}','return')">НДЗ (Вернуть)</button>
+         <button class="btn-red" onclick="openTechCallbackActionModal('${escapeAttr(c.id)}','refuse')">ОТКАЗ</button>
+         <button class="btn-pur" onclick="openTechCallbackActionModal('${escapeAttr(c.id)}','closer')">НА ЗАКРЫВ</button>`
+      : '';
+
+    const operatorActions = canOperatorCallbackActions
+      ? `<button class="btn-yel" onclick="callbackQuickResult('${escapeAttr(c.id)}','НДЗ')">НДЗ</button>
+         <button class="btn-blue" onclick="callbackQuickResult('${escapeAttr(c.id)}','АВТО')">АВТО</button>
+         <button class="btn-pur" onclick="callbackQuickResult('${escapeAttr(c.id)}','ИВРИТ')">ИВРИТ</button>
+         <button class="btn-red" onclick="callbackQuickResult('${escapeAttr(c.id)}','ОТКАЗ')">ОТКАЗ</button>
+         <button style="background:#e67e22" onclick="callbackQuickResult('${escapeAttr(c.id)}','НА КУПАТ')">НА КУПАТ</button>
+         <button style="background:#238636" onclick="callbackQuickResult('${escapeAttr(c.id)}','ПЕРЕДАЛ')">ПЕРЕДАЛ</button>`
+      : '';
+
+    const kupatActions = canKupatCallbackActions
+      ? `<button class="btn-red" onclick="callbackQuickResult('${escapeAttr(c.id)}','ОТКАЗ')">ОТКАЗ</button>
+         <button style="background:#238636" onclick="callbackToCloser('${escapeAttr(c.id)}')">ПЕРЕДАТЬ НА ЗАКРЫВ</button>`
+      : '';
+	  
+    return `
+    <div class="order-item" style="border-left-color:#7c3aed;">
+      <div class="order-head">
+        <div>
+          <div class="order-title">${escapeHtml(c.clientName || 'Без имени')}</div>
+          <div class="order-phone">${escapeHtml(c.phone || '-')}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+          ${c.phone ? `<a href="sip:${escapeAttr(c.phone)}" class="sip-btn" style="padding:8px 10px; font-size:13px; margin:0" onclick="trackEvent('CALL', '${escapeAttr(c.phone)}')">📞 Позвонить</a>` : ''}
+          <button class="btn-pur" onclick="editCallback('${escapeAttr(c.id)}')">✏️</button>
+          <button class="btn-red" onclick="deleteCallback('${escapeAttr(c.id)}')">🗑</button>
+        </div>
+      </div>
+      <div class="pillbar" style="margin-top:8px">
+        <span class="pill"><small>Источник</small><span class="who">${escapeHtml(c.source || '-')}</span></span>
+        <span class="pill"><small>Владелец</small><span class="who">${escapeHtml(c.owner || '-')}</span></span>
+        <span class="pill"><small>Когда</small><span class="who">${escapeHtml(formatUTC2(c.createdAt || c.time || ''))}</span></span>
+      </div>
+      <div class="kvcol" style="margin-top:8px"><div class="k">Комментарий</div><div class="v">${escapeHtml(c.text || '')}</div></div>
+      ${c.card ? `<div class="pillbar" style="margin-top:8px"><span class="pill"><small>Опер</small><span class="who">${escapeHtml(c.card.operator || '-')}</span></span><span class="pill"><small>Тех</small><span class="who">${escapeHtml(c.card.tech || '-')}</span></span><span class="pill"><small>Закрыв</small><span class="who">${escapeHtml(c.card.closer || '-')}</span></span><span class="pill"><small>Статус</small><span class="who">${escapeHtml(c.card.status || '-')}</span></span></div><div class="kvcol" style="margin-top:8px"><div class="k">Инфо карточки</div><div class="v">${escapeHtml([c.card.details, c.card.techInfo, c.card.operatorComment].filter(Boolean).join(' | ') || '-')}</div></div>${c.card.finalText ? `<div style="border:1px solid ${escapeAttr(c.card.finalColor || '#30363d')}; padding:8px; border-radius:10px; margin-top:8px">🏁 ${escapeHtml(c.card.finalText)}</div>`:''}` : ''}
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        ${techActions}
+        ${operatorActions}
+        ${kupatActions}
+        ${canToCloser ? `<button style="background:#238636" onclick="callbackToCloser('${escapeAttr(c.id)}')">Передать на закрыв</button>` : ''}
+        ${canToTech ? `<button class="btn-blue" onclick="callbackToTech('${escapeAttr(c.id)}')">Передать на техника</button>` : ''}
+      </div>
+    </div>
+  `;
+  };
+
+  const sorted = rows.slice().reverse();
+  const columns = [
+    { title:'Без привязки', items: sorted.filter(c => !c.card || !c.card.status) },
+    { title:'В работе', items: sorted.filter(c => ['new','re-work','tech_work','closer','kupat_work','kupat_to_closer'].includes((c.card && c.card.status) || '')) },
+    { title:'Завершено', items: sorted.filter(c => ['final','refuse','return','kupat_final','kupat_refuse','kupat_ndz','kupat_auto','kupat_ivrit'].includes((c.card && c.card.status) || '')) }
+  ];
+
+  el.innerHTML = renderKanbanBoard(columns, renderCallbackCard);
+  window._callbacksCache = rows;
+}
+
+async function editCallback(id){
+  const arr = window._callbacksCache || [];
+  const item = arr.find(x => x && String(x.id) === String(id));
+  if(!item) return alert('Не найдено.');
+  const name = prompt('Имя клиента:', item.clientName || '');
+  if(name === null) return;
+  const phone = prompt('Телефон:', item.phone || '');
+  if(phone === null) return;
+  const text = prompt('Комментарий:', item.text || '');
+  if(text === null) return;
+  const r = await fetch('/api/callbacks/update', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ login: me.login, id, clientName: name, phone, text }) });
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok || !d.success) return alert('Не удалось сохранить: ' + (d.error || r.status));
+  await loadCallbacks();
+}
+
+async function deleteCallback(id){
+  if(!confirm('Удалить карточку перезвона?')) return;
+  const r = await fetch('/api/callbacks/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ login: me.login, id }) });
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok || !d.success) return alert('Не удалось удалить: ' + (d.error || r.status));
+  await loadCallbacks();
+}
+
+async function callbackToTech(id){
+  const r = await fetch('/api/callbacks/transfer-tech', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ login: me.login, role: me.role, id }) });
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok || !d.success) return alert('Не удалось передать технику: ' + (d.error || r.status));
+  await loadCallbacks();
+}
+
+async function callbackToCloser(id){
+  const r = await fetch('/api/callbacks/transfer-closer', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ login: me.login, role: me.role, id }) });
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok || !d.success) return alert('Не удалось передать на закрыв: ' + (d.error || r.status));
+  await Promise.all([loadCallbacks(), loadKupat(), loadKupatMyTransfers()]);
+}
+
+async function deleteOrderAsTech(id){
+  if(!confirm('Удалить карточку клиента?')) return;
+  const r = await fetch('/api/orders/delete-self', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ id, login: me.login, role: me.role })
+  });
+  const d = await r.json().catch(()=>({}));
+  if(!r.ok || !d.success) return alert('Не удалось удалить: ' + (d.error || r.status));
+  await Promise.all([loadOrders('tech'), loadOrders('tech-my')]);
+}
+
+async function callbackTechAction(id, action){
+  const arr = window._callbacksCache || [];
+  const item = arr.find(x => x && String(x.id) === String(id));
+  if(!item) return alert('Карточка перезвона не найдена.');
+  if(!item.sourceId) return alert('Не найдена исходная карточка для изменения статуса.');
+
+  const info = (action === 'return') ? 'НДЗ (Возврат)' : (action === 'refuse' ? 'Отказ' : 'Передано на закрыв');
+  const r1 = await fetch('/api/orders/action', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ id: item.sourceId, status: action, info, techLogin: me.login })
+  });
+  const d1 = await r1.json().catch(()=>({}));
+  if(!r1.ok || d1.success === false) return alert('Не удалось обновить карточку: ' + (d1.error || r1.status));
+
+  const r2 = await fetch('/api/callbacks/delete', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ login: me.login, id })
+  });
+  const d2 = await r2.json().catch(()=>({}));
+  if(!r2.ok || d2.success === false) return alert('Не удалось удалить из перезвона: ' + (d2.error || r2.status));
+
+  await Promise.all([loadCallbacks(), loadOrders('tech-my'), loadOrders('returns')]);
+}
+
+async function callbackQuickResult(id, status){
+  const arr = window._callbacksCache || [];
+  const item = arr.find(x => x && String(x.id) === String(id));
+  if(!item) return alert('Карточка перезвона не найдена.');
+  const note = prompt('Комментарий:', item.text || '') || '';
+  await fetch('/api/save-result', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ status, user: me.login, phone: item.phone || '', name: item.clientName || '', note })
+  });
+  await fetch('/api/callbacks/delete', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ login: me.login, id })
+  });
+  await loadCallbacks();
+}
+
+
+async function createOrderToTech(){
+  const st = document.getElementById('co-status');
+  const name = (document.getElementById('co-name')?.value || '').trim();
+  const phone = (document.getElementById('co-phone')?.value || '').trim();
+  const tz = (document.getElementById('co-tz')?.value || '').trim();
+  const address = (document.getElementById('co-address')?.value || '').trim();
+  const age = (document.getElementById('co-age')?.value || '').trim();
+  const extra = (document.getElementById('co-extra')?.value || '').trim();
+
+  if(st) { st.textContent=''; st.classList.remove('err'); }
+
+  if(!phone){
+    if(st){ st.textContent='Введите номер'; st.classList.add('err'); }
+    return;
+  }
+  // Защита: купат не может
+  if(me?.role === 'kupat'){
+    if(st){ st.textContent='Роль Купат не может создавать заявки'; st.classList.add('err'); }
+    return;
+  }
+
+  const details = `Имя: ${name}\nНомер: ${phone}\n\nТЗ: ${tz}\nАдрес: ${address}\nВозраст: ${age}\n\nДоп.Инфа:\n${extra}`.trim();
+
+  try{
+    if(st) st.textContent='Отправка...';
+    const r = await fetch('/api/orders/create-direct', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        login: me.login,
+        role: me.role,
+        clientName: name,
+        phone,
+        tz,
+        address,
+        age,
+        extra,
+        details
+      })
+    });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok || !j.success){
+      const msg = j.error || 'Ошибка';
+      if(st){ st.textContent='Ошибка: '+msg; st.classList.add('err'); }
+      return;
+    }
+    if(st){ st.textContent='Готово! Заявка передана технику.'; st.classList.remove('err'); }
+    // очистка
+    ['co-name','co-phone','co-tz','co-address','co-age','co-extra'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    // обновим технику, если админ/техник
+    try{ if(me.role==='tech' || me.role==='admin'){ await loadTech(); } }catch(e){}
+  }catch(e){
+    if(st){ st.textContent='Ошибка сети'; st.classList.add('err'); }
+  }
+}
+
+</script>
+
+<!-- Preview modal -->
+<div id="previewModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="closePreviewModal()"></div>
+  <div class="modal-card" style="max-width:760px; max-height:86vh; overflow:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="font-weight:900;" id="previewModalTitle">Карточка</div>
+      <button class="btn-gray" onclick="closePreviewModal()">✕</button>
+    </div>
+    <div id="previewModalBody" style="margin-top:10px"></div>
+  </div>
+</div>
+
+<!-- Tech action modal -->
+<div id="techActionModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="closeTechActionModal()"></div>
+  <div class="modal-card" style="max-width:640px; max-height:82vh; overflow:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="font-weight:900;" id="techActionModalTitle">🛠 Действие</div>
+      <button class="btn-gray" onclick="closeTechActionModal()">✕</button>
+    </div>
+    <div style="margin-top:10px; color:#8b949e; font-size:12px" id="techActionModalHint"></div>
+
+    <div id="techActionOperatorWrap" class="kvcol" style="margin-top:10px; display:none;">
+      <div class="k">Информация от оператора</div>
+      <div class="v" id="techActionOperatorInfo"></div>
+    </div>
+
+    <textarea id="techActionModalText" style="width:100%; min-height:140px; max-height:34vh; margin-top:10px;" placeholder="Комментарий..."></textarea>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+      <button class="btn-gray" onclick="closeTechActionModal()">Отмена</button>
+      <button id="techActionModalSave" class="btn-pur" onclick="saveTechActionModal()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notes modal -->
+<div id="notesModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="closeNotesModal()"></div>
+  <div class="modal-card">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="font-weight:900;">📝 Добавить в заметки</div>
+      <button class="btn-gray" onclick="closeNotesModal()">✕</button>
+    </div>
+    <div style="margin-top:10px; color:#8b949e; font-size:12px" id="notesModalHint"></div>
+    <textarea id="notesModalText" style="width:100%; min-height:110px; margin-top:10px;" placeholder="Комментарий..."></textarea>
+    <div id="notesModalFileWrap" style="margin-top:10px; display:none;">
+      <input type="file" id="notesModalFile" accept="image/*,video/*" />
+      <div class="muted" style="font-size:11px; margin-top:6px;">Файлы могут добавлять только техник и закрыв.</div>
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+      <button class="btn-gray" onclick="closeNotesModal()">Отмена</button>
+      <button class="btn-pur" onclick="saveNotesModal()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- DB picker modal -->
+<div id="dbPickerModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="closeDbPickerModal()"></div>
+  <div class="modal-card" style="max-width:980px; max-height:86vh; overflow:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="font-weight:900;">🗄 Выбор базы</div>
+      <button class="btn-gray" onclick="closeDbPickerModal()">✕</button>
+    </div>
+    <div class="muted" style="font-size:12px; margin-top:8px;">Показывает дату загрузки, последнюю активацию и остаток не прозвоненных номеров.</div>
+    <div id="dbPickerRows" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+</body>
+</html>
