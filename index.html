@@ -160,7 +160,11 @@
 <button class="btn-blue" onclick="nextClient()" style="padding:15px 30px; font-size:18px;">НАЧАТЬ ОБЗВОН</button>
 </div>
 <div class="hidden" id="cats-easter" style="margin-top:14px; border-top:1px solid #30363d; padding-top:10px;">
-  <img src="https://i.gifer.com/Aw.gif" alt="Котики" style="max-width:100%; max-height:340px; border-radius:10px; border:1px solid #30363d; object-fit:contain;" />
+  <img id="cats-easter-img" src="https://i.gifer.com/Aw.gif" alt="Котики" style="max-width:100%; max-height:340px; border-radius:10px; border:1px solid #30363d; object-fit:contain;" />
+  <div style="display:flex; gap:8px; justify-content:center; margin-top:10px;">
+    <button class="btn-gray" onclick="switchCatsGif(-1)">⬅ Предыдущая</button>
+    <button class="btn-blue" onclick="switchCatsGif(1)">Следующая ➡</button>
+  </div>
 </div>
 </div>
 <div class="card" style="position:relative;">
@@ -897,10 +901,32 @@ async function nextClient() {
     document.getElementById('note').value = buildCallTemplateFromRow(curClient.row || []);
 }
 
+const CATS_GIFS = [
+  'https://i.gifer.com/Aw.gif',
+  'https://media.tenor.com/4WfJxA0v5dQAAAAC/cat-funny.gif',
+  'https://media.tenor.com/m7uNf6Sx5zgAAAAC/cat-dance.gif',
+  'https://media.tenor.com/lx2WSGRk8bcAAAAC/cat-cute.gif'
+];
+let catsGifIndex = 0;
+
+function setCatsGif(){
+    const img = document.getElementById('cats-easter-img');
+    if(!img || !CATS_GIFS.length) return;
+    if(catsGifIndex < 0) catsGifIndex = CATS_GIFS.length - 1;
+    if(catsGifIndex >= CATS_GIFS.length) catsGifIndex = 0;
+    img.src = CATS_GIFS[catsGifIndex];
+}
+
+function switchCatsGif(step){
+    catsGifIndex += Number(step) || 0;
+    setCatsGif();
+}
+
 function toggleCatsEaster(){
     const box = document.getElementById('cats-easter');
     if(!box) return;
     box.classList.toggle('hidden');
+	if(!box.classList.contains('hidden')) setCatsGif();
 }
 
 async function sendResult(status) {
@@ -931,6 +957,38 @@ function renderKanbanBoard(columns, renderItem){
             </div>
         `;
     }).join('')}</div>`;
+}
+
+function utc2NowParts(){
+  const d = new Date(Date.now() + 2*60*60*1000);
+  const p = (n) => String(n).padStart(2,'0');
+  return {
+    date: `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}`,
+    time: `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`
+  };
+}
+
+let callbackTechModalState = null;
+function openCallbackTechModal(id){
+  callbackTechModalState = { id };
+  const modal = document.getElementById('callbackTechModal');
+  const dateInp = document.getElementById('callbackTechDate');
+  const timeInp = document.getElementById('callbackTechTime');
+  const hint = document.getElementById('callbackTechHint');
+  const item = (window._callbacksCache || []).find(x => x && String(x.id) === String(id));
+  const now = utc2NowParts();
+  const raw = String(item?.callbackAtUtc2 || '').trim();
+  const m = raw.match(/^(\d{4}-\d{2}-\d{2})\s(\d{2}:\d{2})/);
+  if(dateInp) dateInp.value = (m && m[1]) ? m[1] : now.date;
+  if(timeInp) timeInp.value = (m && m[2]) ? m[2] : now.time;
+  if(hint) hint.textContent = 'Если время перезвона > 30 минут от текущего (UTC+2), карточка появится у техников ровно в указанное время.';
+  if(modal) modal.classList.remove('hidden');
+}
+
+function closeCallbackTechModal(){
+  callbackTechModalState = null;
+  const modal = document.getElementById('callbackTechModal');
+  if(modal) modal.classList.add('hidden');
 }
 
 function orderStatusTitle(status){
@@ -1052,12 +1110,18 @@ async function loadOrders(type) {
     const sorted = data.slice().reverse();
 
     if(type === 'my-orders') {
-        const mine = sorted.filter(o => o.operator === me.login);
+        const mine = sorted.filter(o => {
+          if(me.role === 'tech') return o.tech === me.login || (Array.isArray(o.techs) && o.techs.includes(me.login));
+          if(me.role === 'closer') return o.closer === me.login || (Array.isArray(o.closers) && o.closers.includes(me.login));
+          return o.operator === me.login;
+        });
         const columns = [
-            { title:'Мои', items: mine.filter(o => ['new','re-work'].includes(o.status)) },
+            { title:'Мои', items: mine },
             { title:'В работе у техника', items: mine.filter(o => o.status === 'tech_work') },
             { title:'Возвраты', items: mine.filter(o => o.status === 'return') },
-            { title:'Клиенты на банк', items: mine.filter(o => o.status === 'closer') }
+            { title:'Клиенты на банк', items: mine.filter(o => o.status === 'closer') },
+            { title:'Отказы', items: mine.filter(o => o.status === 'refuse') },
+            { title:'Финал', items: mine.filter(o => o.status === 'final') }
         ];
         document.getElementById(target).innerHTML = renderKanbanBoard(columns, o => renderCompactClientCard(o,
           `<button class="btn-blue" onclick="openOrderPreview('my-orders', ${o.id})">Посмотреть полностью</button>`, '', true
@@ -1265,19 +1329,24 @@ async function loadKupat() {
 
 
 async function loadKupatMyClients() {
-    const r = await fetch(`/api/kupat/list?login=${me.login}&role=${me.role}&view=all`);
-    const data = await r.json();
+    const [kupatRes, bankRes] = await Promise.all([
+      fetch(`/api/kupat/list?login=${me.login}&role=${me.role}&view=all`),
+      fetch(`/api/orders?login=${me.login}&role=${me.role}&view=my-orders`)
+    ]);
+    const data = await kupatRes.json();
+    const bankOrdersRaw = await bankRes.json();
     const mine = (Array.isArray(data) ? data : []).filter(o => o.kupatUser === me.login);
+    const bankOrders = (Array.isArray(bankOrdersRaw) ? bankOrdersRaw : []).map(o => ({ ...o, _source: 'orders_bank' }));
+    const mergedMine = mine.concat(bankOrders);
 	window._kupatAllCache = Array.isArray(data) ? data : [];
     window._kupatMyClientsCache = mine;
 
-
-    const active = mine.filter(o => o.status === 'kupat_work');
-    const archive = mine.filter(o => ['kupat_ndz','kupat_auto','kupat_ivrit','kupat_refuse','kupat_final'].includes(o.status));
+    const active = mergedMine.filter(o => o.status === 'kupat_work' || o.status === 'closer');
+    const archive = mergedMine.filter(o => ['kupat_ndz','kupat_auto','kupat_ivrit','kupat_refuse','kupat_final','final'].includes(o.status));
 
     const renderMine = (o) => renderCompactClientCard(o, `
-	    ${(me.role === 'kupat' || me.role === 'admin') ? `<button class="btn-red" title="Удалить карточку" onclick="deleteKupatClient(${o.id})">✕</button>` : ''}
-        ${o.status === 'kupat_work' ? `
+	    ${(o._source !== 'orders_bank' && (me.role === 'kupat' || me.role === 'admin')) ? `<button class="btn-red" title="Удалить карточку" onclick="deleteKupatClient(${o.id})">✕</button>` : ''}
+        ${o._source !== 'orders_bank' && o.status === 'kupat_work' ? `
             <button class="btn-yel" onclick="kupatAction(${o.id}, 'kupat_ndz')">НДЗ</button>
             <button class="btn-blue" onclick="kupatAction(${o.id}, 'kupat_auto')">АВТО</button>
             <button class="btn-pur" onclick="kupatAction(${o.id}, 'kupat_ivrit')">ИВРИТ</button>
@@ -2352,10 +2421,11 @@ async function addCurrentToCallbacks(){
   const c = window.curClient || null;
   if(!c || !c.phone) return alert('Сначала нажми "НАЧАТЬ ОБЗВОН".');
   const noteEl = document.getElementById('note');
+  const now = utc2NowParts();
   const text = (noteEl ? noteEl.value : '').trim();
   const r = await fetch('/api/callbacks/add', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ login: me.login, role: me.role, source:'dial', clientName: c.name || '', phone: c.phone || '', text })
+    body: JSON.stringify({ login: me.login, role: me.role, source:'dial', clientName: c.name || '', phone: c.phone || '', text, callbackAtUtc2: `${now.date} ${now.time}` })
   });
   const d = await r.json().catch(()=>({}));
   if(!r.ok || !d.success) return alert('Не удалось добавить в перезвон: ' + (d.error || r.status));
@@ -2397,9 +2467,10 @@ async function moveKupatToCallback(id){
   });
   if(!r1.ok) return alert('Не удалось пометить на перезвон');
 
+  const now = utc2NowParts();
   const r2 = await fetchCallbacksApi('/api/callbacks/add', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ login: me.login, role: me.role, source:'kupat', sourceId: o.id, clientName: o.clientName || '', phone: o.phone || '', text: o.details || '' })
+    body: JSON.stringify({ login: me.login, role: me.role, source:'kupat', sourceId: o.id, clientName: o.clientName || '', phone: o.phone || '', text: o.details || '', callbackAtUtc2: `${now.date} ${now.time}` })
   });
   const d2 = await r2.json().catch(()=>({}));
   if(!r2.ok || !d2.success) return alert('Не удалось добавить в перезвон: ' + (d2.error || r2.status));
@@ -2416,7 +2487,7 @@ async function loadCallbacks(){
   const rows = Array.isArray(data) ? data : [];
   if(!rows.length){ el.innerHTML = '<div class="muted">Список перезвона пуст.</div>'; return; }
 
-  const canToTech = me.role === 'admin';
+  const canToTech = me.role === 'user' || me.role === 'admin';
   const canToCloser = me.role === 'admin';
   const canTechCallbackActions = me.role === 'tech' || me.role === 'admin';
   const canOperatorCallbackActions = me.role === 'user' || me.role === 'admin';
@@ -2460,6 +2531,7 @@ async function loadCallbacks(){
         <span class="pill"><small>Источник</small><span class="who">${escapeHtml(c.source || '-')}</span></span>
         <span class="pill"><small>Владелец</small><span class="who">${escapeHtml(c.owner || '-')}</span></span>
         <span class="pill"><small>Когда</small><span class="who">${escapeHtml(formatUTC2(c.createdAt || c.time || ''))}</span></span>
+        ${c.callbackAtUtc2 ? `<span class="pill"><small>Перезвон (UTC+2)</small><span class="who">${escapeHtml(c.callbackAtUtc2)}</span></span>` : ''}
       </div>
       <div class="kvcol" style="margin-top:8px"><div class="k">Комментарий</div><div class="v">${escapeHtml(c.text || '')}</div></div>
       ${c.card ? `<div class="pillbar" style="margin-top:8px"><span class="pill"><small>Опер</small><span class="who">${escapeHtml(c.card.operator || '-')}</span></span><span class="pill"><small>Тех</small><span class="who">${escapeHtml(c.card.tech || '-')}</span></span><span class="pill"><small>Закрыв</small><span class="who">${escapeHtml(c.card.closer || '-')}</span></span><span class="pill"><small>Статус</small><span class="who">${escapeHtml(c.card.status || '-')}</span></span></div><div class="kvcol" style="margin-top:8px"><div class="k">Инфо карточки</div><div class="v">${escapeHtml([c.card.details, c.card.techInfo, c.card.operatorComment].filter(Boolean).join(' | ') || '-')}</div></div>${c.card.finalText ? `<div style="border:1px solid ${escapeAttr(c.card.finalColor || '#30363d')}; padding:8px; border-radius:10px; margin-top:8px">🏁 ${escapeHtml(c.card.finalText)}</div>`:''}` : ''}
@@ -2468,7 +2540,7 @@ async function loadCallbacks(){
         ${operatorActions}
         ${kupatActions}
         ${canToCloser ? `<button style="background:#238636" onclick="callbackToCloser('${escapeAttr(c.id)}')">Передать на закрыв</button>` : ''}
-        ${canToTech ? `<button class="btn-blue" onclick="callbackToTech('${escapeAttr(c.id)}')">Передать на техника</button>` : ''}
+        ${canToTech ? `<button class="btn-blue" onclick="openCallbackTechModal('${escapeAttr(c.id)}')">Передать на техника</button>` : ''}
       </div>
     </div>
   `;
@@ -2510,10 +2582,25 @@ async function deleteCallback(id){
 }
 
 async function callbackToTech(id){
-  const r = await fetch('/api/callbacks/transfer-tech', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ login: me.login, role: me.role, id }) });
+  const dateVal = (document.getElementById('callbackTechDate')?.value || '').trim();
+  const timeVal = (document.getElementById('callbackTechTime')?.value || '').trim();
+  if(!dateVal || !timeVal) return alert('Выбери день и время перезвона (UTC+2).');
+  const callbackAtUtc2 = `${dateVal} ${timeVal}`;
+  const r = await fetch('/api/callbacks/transfer-tech', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ login: me.login, role: me.role, id, callbackAtUtc2 })
+  });
   const d = await r.json().catch(()=>({}));
+  if(!r.ok && d.error === 'callback_time_required') return alert('Время перезвона обязательно.');
   if(!r.ok || !d.success) return alert('Не удалось передать технику: ' + (d.error || r.status));
+  closeCallbackTechModal();
   await loadCallbacks();
+}
+
+async function submitCallbackTechModal(){
+  if(!callbackTechModalState || !callbackTechModalState.id) return;
+  await callbackToTech(callbackTechModalState.id);
 }
 
 async function callbackToCloser(id){
@@ -2665,6 +2752,32 @@ async function createOrderToTech(){
     <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
       <button class="btn-gray" onclick="closeTechActionModal()">Отмена</button>
       <button id="techActionModalSave" class="btn-pur" onclick="saveTechActionModal()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Callback to tech schedule modal -->
+<div id="callbackTechModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="closeCallbackTechModal()"></div>
+  <div class="modal-card" style="max-width:500px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="font-weight:900;">🔁 Время перезвона (UTC+2)</div>
+      <button class="btn-gray" onclick="closeCallbackTechModal()">✕</button>
+    </div>
+    <div id="callbackTechHint" style="margin-top:10px; color:#8b949e; font-size:12px;"></div>
+    <div class="row" style="margin-top:10px;">
+      <div class="col">
+        <label>День</label>
+        <input id="callbackTechDate" type="date" />
+      </div>
+      <div class="col">
+        <label>Время</label>
+        <input id="callbackTechTime" type="time" />
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+      <button class="btn-gray" onclick="closeCallbackTechModal()">Отмена</button>
+      <button class="btn-blue" onclick="submitCallbackTechModal()">Передать технику</button>
     </div>
   </div>
 </div>

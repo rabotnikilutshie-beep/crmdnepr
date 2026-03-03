@@ -175,6 +175,23 @@ function nowUtc2Str(){
   return d.toISOString().replace('T',' ').slice(0,19);
 }
 
+function formatUtc2DateTime(dateObj){
+  const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+  if (Number.isNaN(d.getTime())) return nowUtc2Str();
+  const shifted = new Date(d.getTime() + 2*60*60*1000);
+  return shifted.toISOString().replace('T',' ').slice(0,19);
+}
+
+function parseUtc2InputToDate(value) {
+  const raw = String(value || '').trim();
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi] = m;
+  const utcMs = Date.UTC(Number(y), Number(mo) - 1, Number(d), Number(h) - 2, Number(mi), 0, 0);
+  const dt = new Date(utcMs);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
 function isoDate(dIso) { return String(dIso || '').slice(0, 10); }
 function isoTime(dIso) { const s=String(dIso||''); return s.includes('T') ? s.slice(11,19) : s.slice(11,19); }
 
@@ -569,7 +586,7 @@ app.get('/api/callbacks', (req, res) => {
 });
 
 app.post('/api/callbacks/add', (req, res) => {
-  const { login, role, source, sourceId, clientName, phone, text, card } = req.body || {};
+  const { login, role, source, sourceId, clientName, phone, text, card, callbackAtUtc2 } = req.body || {};
   if (!login) return res.status(400).json({ success: false, error: 'login_required' });
   if (!['user','kupat','tech','admin'].includes(String(role || ''))) return res.status(403).json({ success: false, error: 'forbidden' });
   const item = {
@@ -581,6 +598,7 @@ app.post('/api/callbacks/add', (req, res) => {
     clientName: String(clientName || ''),
     phone: String(phone || ''),
     text: String(text || ''),
+    callbackAtUtc2: String(callbackAtUtc2 || ''),
     createdAt: nowUtc2Str()
   };
   if (card && typeof card === 'object') item.card = card;
@@ -615,7 +633,7 @@ app.post('/api/callbacks/delete', (req, res) => {
 });
 
 app.post('/api/callbacks/transfer-tech', (req, res) => {
-  const { login, role, id } = req.body || {};
+  const { login, role, id, callbackAtUtc2 } = req.body || {};
   if (!login || !id) return res.status(400).json({ success: false, error: 'bad_request' });
   if (!['user','admin'].includes(String(role || ''))) return res.status(403).json({ success: false, error: 'forbidden' });
 
@@ -625,6 +643,13 @@ app.post('/api/callbacks/transfer-tech', (req, res) => {
   const c = rows[idx];
   if (c.owner !== login) return res.status(403).json({ success: false, error: 'forbidden' });
 
+  const selectedCallbackAt = parseUtc2InputToDate(callbackAtUtc2);
+  if (!selectedCallbackAt) return res.status(400).json({ success: false, error: 'callback_time_required' });
+
+  const diffMinutes = Math.floor((selectedCallbackAt.getTime() - Date.now()) / 60000);
+  const delayedForTech = diffMinutes > 30;
+  const techAvailableAt = delayedForTech ? selectedCallbackAt : new Date();
+
   orders.push({
     id: Date.now(),
     operator: login,
@@ -633,6 +658,8 @@ app.post('/api/callbacks/transfer-tech', (req, res) => {
     phone: c.phone || '',
     details: c.text || '',
     time: nowUtc2Str(),
+    callbackAtUtc2: String(callbackAtUtc2),
+    availableAt: formatUtc2DateTime(techAvailableAt),
     status: 'new',
     tech: null,
     closer: null,
@@ -641,7 +668,7 @@ app.post('/api/callbacks/transfer-tech', (req, res) => {
 
   rows.splice(idx, 1);
   saveData(CALLBACKS_FILE, rows);
-  res.json({ success: true });
+  res.json({ success: true, delayedForTech, availableAt: formatUtc2DateTime(techAvailableAt) });
 });
 
 app.post('/api/callbacks/transfer-closer', (req, res) => {
@@ -743,14 +770,23 @@ app.get('/api/orders', (req, res) => {
         )
       );
     }
-    if (view === 'my-orders') return res.json(orders.filter((o) => o.tech === login));
+    if (view === 'my-orders') {
+      return res.json(
+        normalizedOrders.filter(
+          (o) => o.tech === login || (Array.isArray(o.techs) && o.techs.includes(login))
+        )
+      );
+    }
+    const nowTs = Date.now();
     return res.json(
-      orders.filter(
-        (o) =>
-          o.status === 'new' ||
-          o.status === 're-work' ||
-          o.status === 'return'
-      )
+      orders.filter((o) => {
+        const inQueue = o.status === 'new' || o.status === 're-work' || o.status === 'return';
+        if (!inQueue) return false;
+        if (!o.availableAt) return true;
+        const availableDate = parseUtc2InputToDate(String(o.availableAt).slice(0,16).replace(' ', 'T'));
+        if (!availableDate) return true;
+        return availableDate.getTime() <= nowTs;
+      })
     );
   }
 
@@ -758,6 +794,18 @@ app.get('/api/orders', (req, res) => {
   // видит очередь на закрыв + то, что он уже финалил
   if (role === 'closer') {
     return res.json(orders.filter((o) => o.status === 'closer' || o.status === 'final' || o.closer === login));
+  }
+
+  // Купат:
+  // в "Мои клиенты" должен видеть клиентов, которых сам отправил на банк из обзвона
+  if (role === 'kupat') {
+    return res.json(
+      orders.filter(
+        (o) =>
+          o.operator === login &&
+          (o.status === 'closer' || o.status === 'final')
+      )
+    );
   }
 
   return res.json([]);
