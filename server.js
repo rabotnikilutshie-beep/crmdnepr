@@ -28,7 +28,6 @@ app.use(express.json());
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(UPLOAD_DIR));
 
-// --- ФАЙЛОВАЯ СИСТЕМА ---
 const DB_FILES = {
   users: 'users.json',
   history: 'history.json',
@@ -37,7 +36,6 @@ const DB_FILES = {
   db_list: 'databases.json',
   deleted_db_list: 'deleted_databases.json',
   notes: 'notes.json',
-  // Анти-повторы: список уже использованных телефонов (между операторами + после рестарта)
   used_phones: 'used_phones.json',
 };
 
@@ -45,16 +43,13 @@ function dbPath(fileName) {
   return path.join(__dirname, String(fileName || ''));
 }
 
-// Экспорт AUTO/НДЗ
 DB_FILES.export_auto_ndz = 'export_auto_ndz.xlsx';
 DB_FILES.export_kupat = 'export_kupat.xlsx';
 
 
-// Статистика действий пользователей
 DB_FILES.stats_log = 'stats_log.json';
 DB_FILES.stats_xlsx = 'stats_by_day.xlsx';
 
-// fallback for partially-merged builds where callbacks path key may be missing
 const CALLBACKS_FILE = dbPath(DB_FILES.callbacks || 'callbacks.json');
 
 function loadData(file, def) {
@@ -72,7 +67,6 @@ function saveData(file, data) {
   try {
     fs.writeFileSync(file, payload);
   } catch (e) {
-    // self-heal: if json file path was accidentally replaced with a directory
     if (fs.existsSync(file)) {
       try {
         const st = fs.statSync(file);
@@ -92,13 +86,11 @@ function loadArrayData(file) {
   return Array.isArray(rows) ? rows : [];
 }
 
-// ensure notes storage
 if (!fs.existsSync(DB_FILES.notes)) saveData(DB_FILES.notes, []);
 if (!fs.existsSync(DB_FILES.deleted_db_list)) saveData(DB_FILES.deleted_db_list, []);
 
 
 
-// --- ЭКСПОРТ AUTO/НДЗ В EXCEL ---
 function ensureExportWorkbook() {
   const file = DB_FILES.export_auto_ndz;
   if (!fs.existsSync(file)) {
@@ -112,7 +104,6 @@ function ensureExportWorkbook() {
 }
 
 function appendAutoNdzToExcel(kind, payload) {
-  // kind: "AUTO" или "НДЗ"
   ensureExportWorkbook();
   const file = DB_FILES.export_auto_ndz;
   const wb = xlsx.readFile(file);
@@ -143,7 +134,6 @@ function appendAutoNdzToExcel(kind, payload) {
   xlsx.writeFile(wb, file);
 }
 
-// --- ЭКСПОРТ КУПАТ В EXCEL ---
 function ensureKupatWorkbook() {
   const file = DB_FILES.export_kupat;
   if (!fs.existsSync(file)) {
@@ -166,10 +156,8 @@ function appendKupatToExcel(payload) {
   xlsx.writeFile(wb, file);
 }
 
-// --- СТАТИСТИКА ДЕЙСТВСТВИЙ ---
 function nowIso() { return new Date().toISOString(); }
 
-// Время в формате UTC+2: YYYY-MM-DD HH:MM:SS
 function nowUtc2Str(){
   const d = new Date(Date.now() + 2*60*60*1000);
   return d.toISOString().replace('T',' ').slice(0,19);
@@ -270,15 +258,12 @@ function isAdmin(login, role) {
   return !!u && u.role === 'admin';
 }
 
-// --- ПЕРЕМЕННЫЕ В ПАМЯТИ ---
 let users = loadData(DB_FILES.users, [{ login: 'admin', pass: 'admin123', role: 'admin', balance: 0 }]);
 users = users.map(u => ({...u, balance: Number(u.balance || 0)}));
 let callResults = loadData(DB_FILES.history, []);
-let orders = loadData(DB_FILES.orders, []); // Основной поток: Опер -> Тех -> Закрыв
-let kupatOrders = loadData(DB_FILES.kupat, []); // Поток Купат: Опер -> Купат -> Закрыв
+let orders = loadData(DB_FILES.orders, []); 
+let kupatOrders = loadData(DB_FILES.kupat, []); 
 
-// --- АНТИ-ПОВТОРЫ ТЕЛЕФОНОВ ---
-// ВАЖНО: usedPhones объявляем ДО вызова loadUsedPhones(), иначе будет TDZ-ошибка
 let usedPhones = new Set();
 let usedIndices = new Set();
 
@@ -286,8 +271,6 @@ function normPhone(p) {
   const digits = String(p || '').replace(/\D/g, '');
   if (!digits) return '';
 
-  // Приводим израильские номера к одному виду:
-  // 972XXXXXXXXX / 9720XXXXXXXXX / 0XXXXXXXXX -> 0XXXXXXXXX
   if (digits.startsWith('972')) {
     let local = digits.slice(3);
     local = local.replace(/^0+/, '');
@@ -298,14 +281,12 @@ function normPhone(p) {
     return digits.replace(/^0+/, '0');
   }
 
-  // Для остальных форматов оставляем «как есть» без нецифровых символов.
   return digits;
 }
 
 function loadUsedPhones() {
   const arr = loadData(DB_FILES.used_phones, []);
   usedPhones = new Set((arr || []).map(normPhone).filter(Boolean));
-  // также учитываем уже созданные записи, чтобы после рестарта не выдавать повторно
   (callResults || []).forEach((r) => {
     const ph = normPhone(r.phone);
     if (ph) usedPhones.add(ph);
@@ -326,7 +307,6 @@ function saveUsedPhones() {
   } catch (e) {}
 }
 
-// anti-duplicate phones across operators & restarts
 loadUsedPhones();
 
 let databases = loadData(DB_FILES.db_list, []);
@@ -386,13 +366,12 @@ databases = (Array.isArray(databases) ? databases : []).map(normalizeDbMeta);
 deletedDatabases = Array.isArray(deletedDatabases) ? deletedDatabases : [];
 
 
-// --- АВТОРИЗАЦИЯ ---
+// вход дебилов
 app.post('/api/login', (req, res) => {
   const user = users.find((u) => u.login === req.body.login && u.pass === req.body.pass);
   if (user) res.json({ success: true, user });
   else res.status(401).json({ success: false });
 });
-// --- NOTES (личные заметки) ---
 app.get('/api/notes', (req, res) => {
   const login = (req.query.login || '').toString();
   if (!login) return res.status(400).send('login required');
@@ -403,7 +382,6 @@ app.get('/api/notes', (req, res) => {
 
 app.post('/api/notes/add', upload.single('file'), (req, res) => {
   const login = (req.body.login || '').toString();
-  // поддержка как JSON (note объект), так и form-data (поля напрямую)
   const note = req.body.note ? (typeof req.body.note === 'string' ? JSON.parse(req.body.note) : req.body.note) : req.body;
 
   if (!login) {
@@ -418,7 +396,6 @@ app.post('/api/notes/add', upload.single('file'), (req, res) => {
     return res.status(400).send('comment or file required');
   }
 
-  // Файлы в заметках разрешены только tech/closer/admin
   const role = (req.body.role || note.role || '').toString();
   if (hasFile && !(role === 'tech' || role === 'closer' || role === 'admin')) {
     try { fs.unlinkSync(req.file.path); } catch (e) {}
@@ -470,7 +447,6 @@ app.put('/api/notes/update', upload.single('file'), (req, res) => {
     return res.status(403).send('forbidden');
   }
 
-  // Файлы только tech/closer/admin
   if (req.file && !(role === 'tech' || role === 'closer' || role === 'admin')) {
     try { fs.unlinkSync(req.file.path); } catch (e) {}
     return res.status(403).send('forbidden_file');
@@ -478,7 +454,6 @@ app.put('/api/notes/update', upload.single('file'), (req, res) => {
 
   notes[idx].comment = comment;
   if (req.file) {
-    // удалить старый файл если был
     if (notes[idx].file) {
       const p = path.join(__dirname, notes[idx].file.replace('/uploads/', 'uploads/'));
       try { fs.unlinkSync(p); } catch (e) {}
@@ -504,16 +479,13 @@ app.post('/api/notes/delete', (req, res) => {
   res.json({ ok: true });
 });
 
-// --- ЛОГИКА ОБЗВОНА И ЛОГОВ ---
 app.post('/api/save-result', (req, res) => {
-  const { status, user, role, phone, note, name } = req.body;
+  const { status, user, role, phone, note, name, skipOrderCreate } = req.body;
   const time = nowUtc2Str();
 
-  // 1) Пишем в лог
   callResults.push({ id: Date.now(), status, user, phone, name, note: note ?? '', time });
   saveData(DB_FILES.history, callResults);
 
-// 1.1) Экспорт AUTO/НДЗ в Excel (на сервер)
 const st = (status || '').toString().toUpperCase();
 if (st === 'AUTO' || st === 'АВТО') {
   appendAutoNdzToExcel('AUTO', { operator: user, name, phone, tz: '', address: '', age: '', extra: '', note: note ?? '' });
@@ -521,12 +493,10 @@ if (st === 'AUTO' || st === 'АВТО') {
   appendAutoNdzToExcel('НДЗ', { operator: user, name, phone, tz: '', address: '', age: '', extra: '', note: note ?? '' });
 }
 
-  // Mark phone as used (anti-duplicate across operators & restarts)
   const nph = normPhone(phone);
   if(nph){ usedPhones.add(nph); saveUsedPhones(); }
 
-  // 2) Распределяем по заявкам
-  if (status === 'ПЕРЕДАЛ') {
+  if (status === 'ПЕРЕДАЛ' && !skipOrderCreate) {
     orders.push({
       id: Date.now(),
       operator: user,
@@ -546,13 +516,13 @@ if (st === 'AUTO' || st === 'АВТО') {
     kupatOrders.push({
       id: Date.now(),
       operatorFrom: user,
-      opToKupatAt: nowUtc2Str(), // кто передал от оператора
+      opToKupatAt: nowUtc2Str(),
       clientName: name,
       phone,
       details: note ?? '',
       time,
-      status: 'kupat_new', // входящие для купата
-      kupatUser: null, // кто взял/передал купат
+      status: 'kupat_new',
+      kupatUser: null,
       closer: null,
     });
     saveData(DB_FILES.kupat, kupatOrders);
@@ -576,7 +546,7 @@ if (st === 'AUTO' || st === 'АВТО') {
 
 
 
-// --- CALLBACKS (перезвон) ---
+// ебучие перезвоны
 app.get('/api/callbacks', (req, res) => {
   const login = String((req.query || {}).login || '').trim();
   if (!login) return res.status(400).json({ error: 'login_required' });
@@ -713,7 +683,6 @@ app.post('/api/callbacks/transfer-closer', (req, res) => {
 });
 
 
-// Backward-compatible aliases (singular callback path)
 app.get('/api/callback', (req, res) => {
   const login = String((req.query || {}).login || '').trim();
   if (!login) return res.status(400).json({ error: 'login_required' });
@@ -727,18 +696,14 @@ app.post('/api/callback/delete', (req, res) => res.redirect(307, '/api/callbacks
 app.post('/api/callback/transfer-tech', (req, res) => res.redirect(307, '/api/callbacks/transfer-tech'));
 app.post('/api/callback/transfer-closer', (req, res) => res.redirect(307, '/api/callbacks/transfer-closer'));
 
-// Логи доступны только админу (как и было), но делаем безопаснее
 app.get('/api/call-logs', (req, res) => {
   const { role } = req.query;
   if (role === 'admin') return res.json(callResults);
   return res.json([]);
 });
 
-// --- ОСНОВНЫЕ ЗАЯВКИ (Tech Flow) ---
-// view: my-orders | tech | returns | closer (используется фронтом для корректной фильтрации прав)
 app.get('/api/orders', (req, res) => {
   const { login, role, view } = req.query;
-  // normalize tech/closer arrays for UI (backward compatible)
   const norm = (v)=> (v||'').toString().trim();
   const normalizedOrders = orders.map(o=>{
     const techs = Array.isArray(o.techs) ? o.techs.map(norm).filter(Boolean) : (o.tech ? [norm(o.tech)] : []);
@@ -749,17 +714,11 @@ app.get('/api/orders', (req, res) => {
 
   if (role === 'admin') return res.json(normalizedOrders);
 
-  // Оператор:
-  // - История (my-orders/work): только свои
-  // - Возвраты: видеть ВСЕ возвраты/НДЗ всех операторов
   if (role === 'user') {
     if (view === 'returns') return res.json(orders.filter((o) => o.status === 'return'));
     return res.json(orders.filter((o) => o.operator === login));
   }
 
-  // Техник:
-  // - Текущие: new/re-work/return + то что он уже трогал
-  // - История: только то, что закреплено за ним (o.tech === login)
   if (role === 'tech') {
     if (view === 'tech-my') {
       return res.json(
@@ -790,14 +749,10 @@ app.get('/api/orders', (req, res) => {
     );
   }
 
-  // Закрыв:
-  // видит очередь на закрыв + то, что он уже финалил
   if (role === 'closer') {
     return res.json(orders.filter((o) => o.status === 'closer' || o.status === 'final' || o.closer === login));
   }
 
-  // Купат:
-  // в "Мои клиенты" должен видеть клиентов, которых сам отправил на банк из обзвона
   if (role === 'kupat') {
     return res.json(
       orders.filter(
@@ -858,12 +813,10 @@ app.post('/api/orders/delete-self', (req, res) => {
   saveData(DB_FILES.orders, orders);
   return res.json({ success: true });
 });
-// Назначение нескольких техников/закрывов (добавление в список, без удаления из текущих вкладок)
 app.post('/api/orders/assign', (req, res) => {
   const { id, listType, assignee, requesterLogin, requesterRole } = req.body || {};
   if (!id || !listType || !assignee) return res.status(400).json({ success:false, error:'bad_request' });
 
-  // права: tech/admin могут назначать tech; closer/admin могут назначать closer
   if (listType === 'tech' && !(requesterRole === 'tech' || requesterRole === 'admin')) {
     return res.status(403).json({ success:false, error:'forbidden' });
   }
@@ -874,7 +827,6 @@ app.post('/api/orders/assign', (req, res) => {
   const order = orders.find(o => String(o.id) === String(id));
   if (!order) return res.status(404).json({ success:false, error:'not_found' });
 
-  // нормализация: поддерживаем старые поля tech/closer + новые массивы
   const norm = (v)=> (v||'').toString().trim();
   const a = norm(assignee);
   if (!a) return res.status(400).json({ success:false, error:'bad_assignee' });
@@ -899,7 +851,6 @@ app.post('/api/orders/assign', (req, res) => {
 
 
 
-// Создать заявку напрямую технику (для всех кроме kupat)
 app.post('/api/orders/create-direct', (req, res) => {
   const { login, role, clientName, phone, tz, address, age, extra, details } = req.body || {};
   if (!login || !role) return res.status(400).json({ error: 'bad_request' });
@@ -920,6 +871,7 @@ app.post('/api/orders/create-direct', (req, res) => {
   orders.push({
     id,
     operator: login,
+    opToTechAt: time,
     clientName: clientName || '',
     phone,
     details: fullDetails,
@@ -934,7 +886,6 @@ app.post('/api/orders/create-direct', (req, res) => {
   const nph = normPhone(phone);
   if (nph) { usedPhones.add(nph); saveUsedPhones(); }
 
-  // лог события (не звонок, а создание)
   try {
     appendStatsEvent({ ts: nowIso(), login: String(login), role: String(role), action: 'CREATE_ORDER', phone: String(phone), extra: '' });
   } catch (e) {}
@@ -943,7 +894,6 @@ app.post('/api/orders/create-direct', (req, res) => {
 });
 
 app.post('/api/orders/to-tech', (req, res) => {
-  // Оператор возвращает технику
   const order = orders.find((o) => String(o.id) === String(req.body.id));
   if (order) {
     order.status = 're-work';
@@ -966,30 +916,25 @@ app.post('/api/orders/comment', upload.single('file'), (req, res) => {
 
   if (!clean && !hasFile) return res.json({ success: false, error: 'empty' });
 
-  // права на комментарии
   const status = order.status;
 
   let allowed = false;
   if (role === 'admin') allowed = true;
 
-  // Оператор может комментировать ТОЛЬКО на этапе техника (пока не ушло к закрыву)
   if (role === 'user') {
     allowed = status === 'new' || status === 're-work' || status === 'return';
   }
 
-  // Техник — пока заявка не финальная/не отказ
   if (role === 'tech') {
     allowed = status !== 'final' && status !== 'refuse';
-    if (allowed && !order.tech) order.tech = login; // если впервые взаимодействует
+    if (allowed && !order.tech) order.tech = login;
   }
 
-  // Закрыв — на своём этапе
   if (role === 'closer') {
     allowed = status === 'closer' || status === 'final' || order.closer === login;
     if (allowed && !order.closer && status === 'closer') order.closer = login;
   }
 
-  // Файлы разрешены только tech/closer/admin
   if (hasFile && !(role === 'tech' || role === 'closer' || role === 'admin')) {
     try { fs.unlinkSync(req.file.path); } catch (e) {}
     return res.status(403).json({ success: false, error: 'forbidden_file' });
@@ -1030,7 +975,6 @@ app.post('/api/orders/comment', upload.single('file'), (req, res) => {
 });
 
 app.post('/api/orders/final', (req, res) => {
-  // Закрыв финалит
   const order = orders.find((o) => String(o.id) === String(req.body.id));
   if (order) {
     order.status = 'final';
@@ -1042,14 +986,11 @@ app.post('/api/orders/final', (req, res) => {
   res.json({ success: true });
 });
 
-// --- ЗАЯВКИ КУПАТ (Kupat Flow) ---
-// view: incoming | all | for-closer
 app.get('/api/kupat/list', (req, res) => {
   const { login, role, view } = req.query;
 
   if (role === 'admin') return res.json(kupatOrders);
 
-  // Купат: разделяем "входящие" и "всё"
   if (role === 'kupat') {
     if (view === 'incoming') return res.json(kupatOrders.filter((o) => o.status === 'kupat_new'));
     return res.json(kupatOrders); // для "всё/мои" на фронте
@@ -1078,7 +1019,7 @@ app.post('/api/kupat/action', (req, res) => {
   }
 
   order.status = status;
-  order.kupatUser = user; // кто обработал/передал купат
+  order.kupatUser = user;
   if (status === 'kupat_to_closer' && !order.kupatToCloserAt) order.kupatToCloserAt = nowUtc2Str();
   if (typeof note !== 'undefined' && String(note).trim()) order.kupatNote = String(note).trim();
   saveData(DB_FILES.kupat, kupatOrders);
@@ -1171,7 +1112,7 @@ app.post('/api/kupat/delete-self', (req, res) => {
   return res.json({ success: true });
 });
 
-// --- УПРАВЛЕНИЕ (Админ) ---
+// админка олега любимого
 app.post('/api/delete-item', (req, res) => {
   const { id, type } = req.body;
   if (type === 'orders') {
@@ -1194,7 +1135,7 @@ app.post('/api/users/delete', (req, res) => {
   if (requesterRole !== 'admin') return res.status(403).json({ success: false, error: 'forbidden' });
   if (!login) return res.status(400).json({ success: false, error: 'no_login' });
 
-  // не даём удалить самого себя админа (чтобы не убить доступ)
+  // защита на дебила
   const adminCount = users.filter(u => u.role === 'admin').length;
   const target = users.find(u => u.login === login);
   if (target?.role === 'admin' && adminCount <= 1) {
@@ -1228,7 +1169,6 @@ app.get('/api/me-stats', (req,res)=>{
   const u = users.find(x=>x.login===login);
   const balance = Number(u?.balance || 0);
 
-  // MAIN FLOW stats
   const mainMine = orders.filter(o=>{
     if(role==='user') return o.operator===login;
     if(role==='tech') return o.tech===login;
@@ -1245,7 +1185,6 @@ app.get('/api/me-stats', (req,res)=>{
     refuse: mainMine.filter(o=>o.status==='refuse').length,
   };
 
-  // KUPAT FLOW stats
   const kupMine = kupatOrders.filter(o=>{
     if(role==='user') return o.operatorFrom===login;
     if(role==='kupat') return o.kupatUser===login;
@@ -1262,20 +1201,16 @@ app.get('/api/me-stats', (req,res)=>{
     refuse: kupMine.filter(o=>o.status==='refuse' || o.status==='kupat_refuse').length,
   };
 
-  // CALL BUTTON stats (from callResults)
   const uCalls = callResults.filter(r => r.user === login);
   const calls = {
     total: uCalls.length,
-    passedToTech: uCalls.filter(r => r.status === 'ПЕРЕДАЛ').length,
+    passedToTech: orders.filter(o => o.operator === login && !!o.opToTechAt).length,
     sentToKupat: uCalls.filter(r => r.status === 'НА КУПАТ').length,
   };
 
-  // CLOSER interaction stats
-  // For operator: how many of my clients reached closer + how many ended in final
   const operatorToCloser = orders.filter(o => o.operator === login && !!o.closer).length;
   const operatorFinalByCloser = orders.filter(o => o.operator === login && !!o.closer && o.status === 'final').length;
 
-  // For closer: how many clients I worked + successful finals
   const closerWorked = orders.filter(o => o.closer === login).length;
   const closerFinal = orders.filter(o => o.closer === login && o.status === 'final').length;
 
@@ -1287,14 +1222,12 @@ app.get('/api/stats', (req, res) => {
     const login = u.login;
     const uCalls = callResults.filter((r) => r.user === login);
 
-    // лог звонков
     const calls = {
       total: uCalls.length,
-      passedToTech: uCalls.filter((r) => r.status === 'ПЕРЕДАЛ').length,
+      passedToTech: orders.filter((o) => o.operator === login && !!o.opToTechAt).length,
       sentToKupat: uCalls.filter((r) => r.status === 'НА КУПАТ').length,
     };
 
-    // основной поток
     const main = {
       created: orders.filter((o) => o.operator === login).length,
       techTook: orders.filter((o) => o.tech === login).length,
@@ -1303,7 +1236,6 @@ app.get('/api/stats', (req, res) => {
       closerRefuse: orders.filter((o) => o.closer === login && o.status === 'refuse').length,
     };
 
-    // поток купат
     const kupat = {
       fromOperator: kupatOrders.filter((o) => o.operatorFrom === login).length,
       kupatTook: kupatOrders.filter((o) => o.kupatUser === login).length,
@@ -1323,7 +1255,6 @@ app.get('/api/stats', (req, res) => {
   res.json({ byUsers: stats });
 });
 
-// --- БАЗА ДАННЫХ ---
 app.post('/api/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.json({ error: 'Нет файла' });
 
@@ -1502,7 +1433,6 @@ app.get('/api/get-row', (req, res) => {
 });
 
 
-// --- API: СТАТИСТИКА (события с фронта) ---
 app.post('/api/stats/event', (req, res) => {
   const { login, role, action, phone, extra } = req.body || {};
   if (!login || !action) return res.status(400).json({ error: 'bad_request' });
@@ -1522,7 +1452,6 @@ app.post('/api/stats/event', (req, res) => {
   res.json({ ok: true });
 });
 
-// --- API: АДМИН — статистика за день ---
 app.get('/api/admin/stats', (req, res) => {
   const { login, role, date } = req.query || {};
   if (!isAdmin(login, role)) return res.status(403).json({ error: 'forbidden' });
@@ -1554,17 +1483,15 @@ app.get('/api/admin/stats', (req, res) => {
     else if (a.includes('ОТКАЗ') || a === 'REFUSE') bump(user, 'refuse');
     else if (a.includes('ИВРИТ') || a.includes('IVRIT') || a === 'HEBREW') bump(user, 'ivrit');
     else if (a.includes('КУПАТ')) bump(user, 'kupat');     // НА КУПАТ
-    else if (a.includes('ПЕРЕД')) bump(user, 'passed');    // ПЕРЕДАЛ
+    else if (a.includes('ПЕРЕД') || a === 'CREATE_ORDER') bump(user, 'passed');    // ПЕРЕДАЛ / СОЗДАТЬ ЗАЯВКУ
     else if (a.includes('ЗАКР') || a === 'FINAL') bump(user, 'closed'); // ЗАКРЫЛ/FINAL
   }
 
-  // добавить всех пользователей (чтобы видно было нули)
   for (const u of (users || [])) ensure(u.login);
 
   res.json({ date: day, rows: Object.values(byUser).sort((a,b)=>a.login.localeCompare(b.login)) });
 });
 
-// --- API: АДМИН — скачать Excel лог ---
 app.get('/api/admin/stats/download', (req, res) => {
   const { login, role } = req.query || {};
   if (!isAdmin(login, role)) return res.status(403).send('forbidden');
@@ -1588,7 +1515,6 @@ app.get('/api/export/kupat', (req, res) => {
 
 
 
-// Скачать Excel AUTO/НДЗ (только админ)
 app.get('/api/export/auto-ndz', (req, res) => {
   const { login, role } = req.query || {};
   if (!isAdmin(login, role)) return res.status(403).json({ error: 'forbidden' });

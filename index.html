@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"/>
-<title>CRM Dnepr</title>
+<title>CRM Dnipro</title>
 <style>
     /* Dark Theme Core */
     body { margin:0; padding:15px; background: radial-gradient(1200px 800px at 20% 10%, #1b2a3a 0%, rgba(27,42,58,0) 60%), radial-gradient(900px 600px at 80% 0%, #2a1b3a 0%, rgba(42,27,58,0) 55%), linear-gradient(135deg, #0b0f14 0%, #0e1117 40%, #070a0f 100%); color:#e6e6e6; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height:100vh; }
@@ -55,6 +55,9 @@
     .compact-card .order-phone { color:#9ecbff; font-size:15px; font-weight:700; }
     .compact-card .pillbar { margin-top:6px; }
     .compact-card .pill { font-size:12px; padding:4px 8px; border-color:#30363d; background:#161b22; color:#e6edf3; }
+	.compact-card .pill.pill-callback { border-color:#238636; background:rgba(35,134,54,0.2); }
+    .compact-card .pill.pill-callback small { color:#7ee787; }
+    .compact-card .pill.pill-callback .who { color:#7ee787; }
     .compact-card .pill small { color:#8b949e; }
     .compact-card .pill .who { color:#e6edf3; }
     .compact-card .card-meta { display:grid; grid-template-columns: 1fr auto; gap:6px 10px; border-top:1px solid #30363d; border-bottom:1px solid #30363d; margin-top:8px; padding:10px 0; }
@@ -262,10 +265,10 @@
 <div class="card sheet-embed-wrap" style="padding:14px">
 <div class="sheet-embed-head">
 <h3 style="margin:0">📊 Google-таблица</h3>
-<a class="btn-blue" href="https://docs.google.com/spreadsheets/d/1ai0mGxEYgTpfA5rdhDvM1R1Qk90gOYYh_kMBr_e3bZM/edit?gid=0#gid=0" rel="noopener noreferrer" style="text-decoration:none; display:inline-flex; align-items:center;" target="_blank">Открыть в новой вкладке</a>
+<a class="btn-blue" href="https://docs.google.com/spreadsheets/d/1MwFxc39h5qEDCTwB5L7EfH_oUeaBc7NXPj-8_83ZTHA/edit?gid=458847795#gid=458847795" rel="noopener noreferrer" style="text-decoration:none; display:inline-flex; align-items:center;" target="_blank">Открыть в новой вкладке</a>
 </div>
 <div class="muted" style="font-size:12px; margin-bottom:8px">Если таблица не отображается во встроенном окне (ограничение Google по iframe), используйте кнопку "Открыть в новой вкладке".</div>
-<iframe allow="clipboard-read; clipboard-write" class="sheet-embed-frame" loading="lazy" src="https://docs.google.com/spreadsheets/d/1ai0mGxEYgTpfA5rdhDvM1R1Qk90gOYYh_kMBr_e3bZM/edit?gid=0&amp;single=true&amp;widget=true&amp;headers=false" title="Google таблица доходов"></iframe>
+<iframe allow="clipboard-read; clipboard-write" class="sheet-embed-frame" loading="lazy" src="https://docs.google.com/spreadsheets/d/1MwFxc39h5qEDCTwB5L7EfH_oUeaBc7NXPj-8_83ZTHA/edit?gid=458847795#gid=458847795" title="Google таблица"></iframe>
 </div>
 </div>
 <div class="hidden card" id="tab-logs"><h3>📋 Лог звонков</h3><table id="table-logs"><thead><tr><th>Время</th><th>Опер</th><th>Клиент</th><th>Статус</th><th>Инфо</th></tr></thead><tbody></tbody></table></div>
@@ -359,11 +362,9 @@ async function downloadAutoNdz(){
 </div>
 
 <script>
-// STATE
 let me = null;
 let curClient = null;
 
-// --- STATS TRACKING (ADMIN REPORTS) ---
 function trackEvent(action, phone='', extra='') {
   try {
     if (!me || !me.login) return;
@@ -441,7 +442,6 @@ function downloadKupatExcel(){
   window.open(`/api/export/kupat?login=${encodeURIComponent(me.login)}&role=${encodeURIComponent(me.role)}`, '_blank');
 }
 
-// helpers: safe html
 
 function renderMedia(url){
   if(!url) return '';
@@ -462,8 +462,6 @@ function escapeHtml(s){
     return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-// ===== Assignment dropdowns support (moved inside script) =====
-// Users cache (for assignment dropdowns)
 let usersCache = [];
 async function loadUsersCache(){
   try{
@@ -491,14 +489,11 @@ async function addAssignee(orderId, listType, selId){
       body: JSON.stringify({ id: orderId, listType, assignee, requesterLogin: me?.login, requesterRole: me?.role })
     });
     if(!r.ok){ const t=await r.text(); return alert('Не удалось назначить: '+t); }
-    // reload current view lists
     if(listType==='tech') await loadOrders('tech');
     if(listType==='closer') await loadOrders('closer');
-    // also refresh others that may show same order
     await loadOrders('returns'); 
   }catch(e){ alert('Ошибка назначения'); }
 }
-// ===== end assignment dropdowns support =====
 
 
 function escapeAttr(s){ return escapeHtml(s).replace(/\s/g,''); }
@@ -511,7 +506,6 @@ function roleTitle(r){
     return r || '';
 }
 
-// Формат времени в UTC+2 (YYYY-MM-DD HH:MM:SS)
 function formatUTC2(ts){
   if(!ts) return '';
   const s = String(ts);
@@ -538,13 +532,10 @@ function canCommentOrder(o){
     const st = o.status;
     if(me.role === 'admin') return true;
 
-    // Опер может писать только пока заявка у техника (до закрыва)
     if(me.role === 'user') return (st === 'new' || st === 're-work' || st === 'return');
 
-    // Техник — пока не финал/не отказ
     if(me.role === 'tech') return (st !== 'final' && st !== 'refuse');
 
-    // Закрыв — на своём этапе
     if(me.role === 'closer') return (st === 'closer' || st === 'final' || (o.closer && o.closer === me.login));
 
     return false;
@@ -583,7 +574,6 @@ async function saveOrderComment(id, textareaId){
     } // обновить текущую вкладку
 }
 
-// NOTIFY SOUND (WebAudio beep)
 let _audioCtx = null;
 let _audioUnlocked = false;
 function _ensureAudio() {
@@ -601,7 +591,6 @@ document.addEventListener('click', unlockAudioOnce, {once:true});
 document.addEventListener('touchstart', unlockAudioOnce, {once:true});
 
 function playNotify() {
-    // выразительный, но мягкий "chime" (2 тона, плавная огибающая)
     try {
         _ensureAudio();
         if(_audioCtx.state === 'suspended') _audioCtx.resume().catch(()=>{});
@@ -625,7 +614,6 @@ function playNotify() {
         o1.type = 'triangle';
         o2.type = 'sine';
 
-        // two-step "ding"
         o1.frequency.setValueAtTime(523.25, t0); // C5
         o1.frequency.exponentialRampToValueAtTime(784.00, t0 + 0.18); // G5
         o2.frequency.setValueAtTime(659.25, t0); // E5
@@ -648,7 +636,6 @@ function playNotify() {
     } catch(e) { /* ignore */ }
 }
 
-// POLLING for new incoming orders (tech/closer)
 let _seenTechIds = new Set();
 let _seenCloserIds = new Set();
 let _pollReady = false;
@@ -659,7 +646,6 @@ async function pollIncoming() {
         if(me.role === 'tech') {
             const r = await fetch(`/api/orders?login=${me.login}&role=${me.role}&view=tech`);
             let data = await r.json();
-            // incoming for tech: new / re-work (реальные "пришли")
             const incoming = data.filter(o => o.status === 'new' || o.status === 're-work');
             const ids = new Set(incoming.map(o => o.id));
             if(_pollReady) {
@@ -688,7 +674,7 @@ async function pollIncoming() {
 }
 
 
-// --- AUTH & NAV ---
+// AUTH & NAV 
 async function login() {
     const msgEl = document.getElementById('loginMsg');
     const setMsg = (t) => {
@@ -727,7 +713,6 @@ async function login() {
             try{ await loadUsersCache(); }catch(e){}
 			setupAdminStatsUI();
 
-// prefetch my stats
         try{ await loadMyStats(); }catch(e){}
 
             wireIncomeInputs();
@@ -821,15 +806,12 @@ async function openTab(name) {
     window._activeTab = name;
     if(name === 'income' && me && me.role !== 'admin') return;
 
-    // Hide all
     ['tab-work','tab-create-order','tab-my-orders','tab-notes','tab-callbacks','tab-tech','tab-tech-my','tab-returns','tab-closer','tab-kupat','tab-kupat-my-clients','tab-kupat-my-transfers','tab-income','tab-logs','tab-admin','tab-admin-stats']
         .forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
     
-    // Show one
     const showEl = document.getElementById('tab-'+name);
     if(showEl) showEl.classList.remove('hidden');
     
-    // Load Data
     if(name === 'notes') { await loadNotes(); }
     if(name === 'callbacks') { await loadCallbacks(); }
     if(name === 'my-orders') { setMyTitle(); loadOrders('my-orders'); }
@@ -871,7 +853,6 @@ function buildCallTemplateFromRow(row){
         `-`
     ].join('\n');
 }
-// --- WORKER FLOW ---
 async function nextClient() {
     const r = await fetch('/api/get-row');
     const d = await r.json();
@@ -893,7 +874,7 @@ async function nextClient() {
             ${me.role === 'kupat'
                 ? `<button style="background:#238636" onclick="sendResult('НА БАНК')">НА БАНК</button>`
                 : `<button style="background:#e67e22" onclick="sendResult('НА КУПАТ')">НА КУПАТ</button>
-                   <button style="background:#238636" onclick="sendResult('ПЕРЕДАЛ')">ПЕРЕДАЛ</button>`}
+                   <button style="background:#238636" onclick="openDialTechTransferModal()">ПЕРЕДАЛ</button>`}
         </div>
         <div style="margin-top:10px"><button class="btn-vio" onclick="addCurrentToNotes()" style="width:100%; padding:12px; font-size:14px;">В ЗАМЕТКИ</button></div>
 		<div style="margin-top:8px"><button class="btn-gray" onclick="addCurrentToCallbacks()" style="width:100%; padding:10px; font-size:14px;">🔁 В ПЕРЕЗВОН</button></div>
@@ -903,9 +884,9 @@ async function nextClient() {
 
 const CATS_GIFS = [
   'https://i.gifer.com/Aw.gif',
-  'https://media.tenor.com/4WfJxA0v5dQAAAAC/cat-funny.gif',
-  'https://media.tenor.com/m7uNf6Sx5zgAAAAC/cat-dance.gif',
-  'https://media.tenor.com/lx2WSGRk8bcAAAAC/cat-cute.gif'
+  'https://i.gifer.com/Ao.gif',
+  'https://i.gifer.com/KHO.gif',
+  'https://i.gifer.com/1fig.gif'
 ];
 let catsGifIndex = 0;
 
@@ -970,7 +951,7 @@ function utc2NowParts(){
 
 let callbackTechModalState = null;
 function openCallbackTechModal(id){
-  callbackTechModalState = { id };
+  callbackTechModalState = { mode: 'callback', id };
   const modal = document.getElementById('callbackTechModal');
   const dateInp = document.getElementById('callbackTechDate');
   const timeInp = document.getElementById('callbackTechTime');
@@ -981,6 +962,19 @@ function openCallbackTechModal(id){
   const m = raw.match(/^(\d{4}-\d{2}-\d{2})\s(\d{2}:\d{2})/);
   if(dateInp) dateInp.value = (m && m[1]) ? m[1] : now.date;
   if(timeInp) timeInp.value = (m && m[2]) ? m[2] : now.time;
+  if(hint) hint.textContent = 'Если время перезвона > 30 минут от текущего (UTC+2), карточка появится у техников ровно в указанное время.';
+  if(modal) modal.classList.remove('hidden');
+}
+
+function openDialTechTransferModal(){
+  callbackTechModalState = { mode: 'dial' };
+  const modal = document.getElementById('callbackTechModal');
+  const dateInp = document.getElementById('callbackTechDate');
+  const timeInp = document.getElementById('callbackTechTime');
+  const hint = document.getElementById('callbackTechHint');
+  const now = utc2NowParts();
+  if(dateInp) dateInp.value = now.date;
+  if(timeInp) timeInp.value = now.time;
   if(hint) hint.textContent = 'Если время перезвона > 30 минут от текущего (UTC+2), карточка появится у техников ровно в указанное время.';
   if(modal) modal.classList.remove('hidden');
 }
@@ -1073,6 +1067,7 @@ function renderCompactClientCard(o, actionsHtml, extraClass='', withOrderComment
         </div>
         <div class="pillbar">
             <span class="pill"><small>Статус</small><span class="who">${escapeHtml(orderStatusTitle(o.status))}</span></span>
+            ${o.callbackAtUtc2 ? `<span class="pill pill-callback"><small>Перезвон (UTC+2)</small><span class="who">${escapeHtml(o.callbackAtUtc2)}</span></span>` : ''}
         </div>
         <div class="card-meta">
           <div class="k">Ответственный</div>
@@ -1091,7 +1086,25 @@ function renderCompactClientCard(o, actionsHtml, extraClass='', withOrderComment
     `;
 }
 
-// --- RENDERING LISTS ---
+
+function parseUtc2DateTimeToMs(raw){
+    const s = String(raw || '').trim();
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2})(?::\d{2})?$/);
+    if(!m) return null;
+    const [, y, mo, d, h, mi] = m;
+    const ms = Date.UTC(Number(y), Number(mo)-1, Number(d), Number(h)-2, Number(mi), 0, 0);
+    return Number.isNaN(ms) ? null : ms;
+}
+
+function isOrderAvailableForTech(order){
+    if(!order || !order.availableAt) return true;
+    const ts = parseUtc2DateTimeToMs(order.availableAt);
+    if(ts == null) return true;
+    return ts <= Date.now();
+}
+
+
+// RENDERING LISTS
 async function loadOrders(type) {
     const r = await fetch(`/api/orders?login=${me.login}&role=${me.role}&view=${type}`);
     let data = await r.json();
@@ -1130,12 +1143,13 @@ async function loadOrders(type) {
     }
 
     if(type === 'tech') {
-        const items = sorted.filter(o => o.status === 'new' || o.status === 're-work');
+        const items = sorted.filter(o => (o.status === 'new' || o.status === 're-work') && isOrderAvailableForTech(o));
         document.getElementById(target).innerHTML = renderKanbanBoard([
           { title:'Карточки клиентов', items }
         ], o => renderCompactClientCard(o,
           `<button class="btn-blue" onclick="techTakeInWork(${o.id})">Взять в работу</button>
-           <button class="btn-gray" onclick="openOrderPreview('tech', ${o.id})">Посмотреть полностью</button>`, '', true
+           <button class="btn-gray" onclick="openOrderPreview('tech', ${o.id})">Посмотреть полностью</button>
+           ${me.role === 'admin' ? `<button class="btn-red" title="Удалить карточку" onclick="deleteOrderAsTech(${o.id})">✖</button>` : ''}`, '', true
         ));
         return;
     }
@@ -1149,7 +1163,8 @@ async function loadOrders(type) {
            <button class="btn-red" onclick="openTechOrderActionModal(${o.id}, 'refuse')">ОТКАЗ</button>
            <button class="btn-pur" onclick="openTechOrderActionModal(${o.id}, 'closer')">НА БАНК</button>
            <button class="btn-gray" onclick="moveTechToCallback(${o.id})">ПЕРЕЗВОН</button>
-           <button class="btn-blue" onclick="openOrderPreview('tech-my', ${o.id})">Посмотреть полностью</button>`, '', true
+           <button class="btn-blue" onclick="openOrderPreview('tech-my', ${o.id})">Посмотреть полностью</button>
+           ${me.role === 'admin' ? `<button class="btn-red" title="Удалить карточку" onclick="deleteOrderAsTech(${o.id})">✖</button>` : ''}`, '', true
         ));
         return;
     }
@@ -1395,7 +1410,7 @@ async function loadKupatMyTransfers() {
 }
 
 
-// --- LOGIC FUNCTIONS ---
+// LOGIC FUNCTIONS
 let techActionModalState = null;
 
 function findOrderInCacheById(id){
@@ -1720,7 +1735,7 @@ async function delItem(id, type) {
     }
 }
 
-// --- ADMIN & DB ---
+//  Админ и базы ебаные
 async function loadLogs() {
     const r = await fetch('/api/call-logs?role=admin');
     const d = await r.json();
@@ -1761,7 +1776,7 @@ async function loadStats() {
             </tr>`;
         }).join('');
 
-    // Селект для назначения баланса
+    // оно не работает как надо, починить
     const sel = document.getElementById('balUser');
     if (sel) {
         sel.innerHTML = list.map(u => `<option value="${escapeHtml(u.login)}">${escapeHtml(u.login)} (${escapeHtml(roleTitle(u.role))})</option>`).join('');
@@ -1976,13 +1991,11 @@ async function delUser(login) {
     }
 }
 
-// INCOME (admin) — salary calculator
 function _n(v) {
     const x = parseFloat(String(v).replace(',', '.'));
     return isFinite(x) ? x : 0;
 }
 function _fmt(x) {
-    // keep .5 etc, but trim trailing zeros
     const s = (Math.round((x + Number.EPSILON) * 100) / 100).toString();
     return s.includes('.') ? s.replace(/0+$/,'').replace(/\.$/,'') : s;
 }
@@ -1998,7 +2011,6 @@ function incomeCalc() {
     const kuraSum = sum * (kuraPct/100);
     const afterKura = sum - kuraSum;
 
-    // IMPORTANT: по твоему примеру "итоговая сумма" — это % на клиента ОТ остатка (не остаток + %)
     const clientSum = afterKura * (clientPct/100);
 
     const afterDiv = divBy > 0 ? (clientSum / divBy) : 0;
@@ -2035,7 +2047,6 @@ function wireIncomeInputs() {
 
 async function loadMyStats(){
     if(!me) return;
-    // ensure container exists
     let box = document.getElementById('myStatsBox');
     if(!box){    }
     if(box) box.textContent = 'Загрузка...';
@@ -2049,7 +2060,6 @@ async function loadMyStats(){
         const bal = (data.balance ?? 0);
         const s = data.stats || {};
         const lines = [];
-        // Баланс отдельно
         lines.push(`<div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap">
             <div>
                 <div class="muted" style="font-size:12px">Ваш баланс</div>
@@ -2116,7 +2126,7 @@ async function loadMyStats(){
             </div>`);
         }
 
-        // Админу — таблица по всем пользователям (как раньше)
+        // Админ — таблица по всем пользователям
         if(me.role === 'admin'){
             const rr = await fetch('/api/stats', {cache:'no-store'});
             const all = await rr.json();
@@ -2193,7 +2203,6 @@ async function setBalance(){
     await await loadMyStats();
 }
 
-// Ensure login handler works even if inline handlers are blocked
 document.addEventListener('DOMContentLoaded', () => {
     const dbSel = document.getElementById('dbSel');
     if(dbSel) dbSel.addEventListener('change', syncDbAllowDupToggle);
@@ -2203,7 +2212,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const pass = document.getElementById('pasIn');
     if (pass) pass.addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
 });
-// expose for any remaining inline usage
 window.login = login;
 
 
@@ -2247,7 +2255,6 @@ async function saveNotesModal(){
 
   if(!comment && !file) return alert('Напиши комментарий или прикрепи файл.');
 
-  // EDIT mode if payload has id
   if(notesModalPayload.id){
     const fd = new FormData();
     fd.append('login', me.login);
@@ -2347,7 +2354,6 @@ function renderNotes(items){
   }).join('');
 }
 
-// Оператор: текущий клиент обзвона -> заметки
 function addCurrentToNotes(){
   const c = window.curClient || null;
   if(!c || !c.phone) return alert('Сначала нажми "НАЧАТЬ ОБЗВОН".');
@@ -2362,7 +2368,6 @@ function addCurrentToNotes(){
   openNotesModal(payload, `Клиент: ${c.name || ''} · ${c.phone || ''}`);
 }
 
-// Закрыв: любая заявка (дублируем в заметки, не удаляем)
 const ordersCache = {};
 async function addOrderToNotes(orderId, listType){
   const arr = ordersCache[listType] || [];
@@ -2383,7 +2388,6 @@ async function addOrderToNotes(orderId, listType){
 }
 
 function editNote(id){
-  // find note in last loaded notes cache if exists in window._notesCache
   const items = window._notesCache || [];
   const n = items.find(x => x && String(x.id) === String(id));
   if(!n) return alert('Не удалось найти заметку.');
@@ -2432,7 +2436,7 @@ async function addCurrentToCallbacks(){
   await advanceDialAfterTransfer('В ПЕРЕЗВОН');
 }
 
-async function advanceDialAfterTransfer(status){
+async function advanceDialAfterTransfer(status, opts = {}){
   const c = window.curClient || null;
   if(!c || !c.phone) return;
   const note = (document.getElementById('note')?.value || '').trim();
@@ -2441,10 +2445,17 @@ async function advanceDialAfterTransfer(status){
     await fetch('/api/save-result', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ status, user: me.login, phone: c.phone, name: c.name, note })
+      body: JSON.stringify({
+        status,
+        user: me.login,
+        role: me.role,
+        phone: c.phone,
+        name: c.name,
+        note,
+        skipOrderCreate: Boolean(opts.skipOrderCreate)
+      })
     });
   }catch(e){
-    // не блокируем переход к следующему клиенту
   }
 
   await nextClient();
@@ -2598,8 +2609,56 @@ async function callbackToTech(id){
   await loadCallbacks();
 }
 
+async function transferCurrentDialToTech(callbackAtUtc2){
+  const c = window.curClient || null;
+  if(!c || !c.phone) return alert('Сначала нажми "НАЧАТЬ ОБЗВОН".');
+  const note = (document.getElementById('note')?.value || '').trim();
+
+  const rAdd = await fetch('/api/callbacks/add', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      login: me.login,
+      role: me.role,
+      source:'dial',
+      clientName: c.name || '',
+      phone: c.phone || '',
+      text: note,
+      callbackAtUtc2
+    })
+  });
+  const dAdd = await rAdd.json().catch(()=>({}));
+  if(!rAdd.ok || !dAdd.success || !dAdd.item?.id) {
+    return alert('Не удалось подготовить передачу технику: ' + (dAdd.error || rAdd.status));
+  }
+
+  const rTransfer = await fetch('/api/callbacks/transfer-tech', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ login: me.login, role: me.role, id: dAdd.item.id, callbackAtUtc2 })
+  });
+  const dTransfer = await rTransfer.json().catch(()=>({}));
+  if(!rTransfer.ok || !dTransfer.success) {
+    return alert('Не удалось передать технику: ' + (dTransfer.error || rTransfer.status));
+  }
+
+  trackEvent('ПЕРЕДАЛ', c.phone || '', note);
+  closeCallbackTechModal();
+  await advanceDialAfterTransfer('ПЕРЕДАЛ', { skipOrderCreate: true });
+}
+
 async function submitCallbackTechModal(){
-  if(!callbackTechModalState || !callbackTechModalState.id) return;
+  if(!callbackTechModalState) return;
+  const dateVal = (document.getElementById('callbackTechDate')?.value || '').trim();
+  const timeVal = (document.getElementById('callbackTechTime')?.value || '').trim();
+  if(!dateVal || !timeVal) return alert('Выбери день и время перезвона (UTC+2).');
+  const callbackAtUtc2 = `${dateVal} ${timeVal}`;
+
+  if(callbackTechModalState.mode === 'dial'){
+    await transferCurrentDialToTech(callbackAtUtc2);
+    return;
+  }
+
+  if(!callbackTechModalState.id) return;
   await callbackToTech(callbackTechModalState.id);
 }
 
@@ -2709,9 +2768,10 @@ async function createOrderToTech(){
       return;
     }
     if(st){ st.textContent='Готово! Заявка передана технику.'; st.classList.remove('err'); }
+    trackEvent('ПЕРЕДАЛ', phone, 'СОЗДАТЬ ЗАЯВКУ');
     // очистка
     ['co-name','co-phone','co-tz','co-address','co-age','co-extra'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-    // обновим технику, если админ/техник
+    // обновим техника, если админ/техник
     try{ if(me.role==='tech' || me.role==='admin'){ await loadTech(); } }catch(e){}
   }catch(e){
     if(st){ st.textContent='Ошибка сети'; st.classList.add('err'); }
