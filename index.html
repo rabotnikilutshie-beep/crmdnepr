@@ -130,6 +130,35 @@
 .db-col h4{margin:0 0 8px 0;font-size:14px;}
 @media (max-width: 1100px){.db-kanban{grid-template-columns:1fr;}}
 
+
+/* Sidebar layout */
+.app-shell{display:grid; grid-template-columns:260px minmax(0,1fr); gap:14px; align-items:start;}
+.app-content{min-width:0;}
+.sidebar{position:sticky; top:12px; height:calc(100vh - 24px); margin-bottom:0; padding:12px; display:flex; flex-direction:column; gap:10px; transition:width .28s ease, padding .28s ease; overflow:hidden;}
+.sidebar-user{display:flex; flex-direction:column; gap:6px; padding:8px; border:1px solid #30363d; border-radius:10px; background:rgba(13,17,23,0.75);}
+.sidebar-toggle{width:100%; margin:0; background:#21262d; border:1px solid #3f4750; color:#d2d8df;}
+#nav-buttons{display:flex; flex-direction:column; gap:8px; overflow:auto; padding-right:2px;}
+.nav-btn{display:flex; align-items:center; gap:10px; width:100%; margin:0; background:linear-gradient(135deg,#6d3df0,#8e5cff); color:#fff; text-align:left; border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px 12px; transition:background .24s ease, transform .2s ease, color .24s ease, width .28s ease;}
+.nav-btn .icon{font-size:16px; width:18px; text-align:center; flex:0 0 18px;}
+.nav-btn .label{white-space:nowrap; transition:opacity .22s ease, width .25s ease;}
+
+.sidebar-user b, .sidebar-user .badge, #soundHint{transition:opacity .22s ease, width .25s ease;}
+.nav-btn.active{box-shadow:0 0 0 2px rgba(175,133,255,0.35) inset;}
+.nav-btn.logout{margin-top:6px; background:#30363d;}
+body.sidebar-collapsed .app-shell{grid-template-columns:88px minmax(0,1fr);}
+body.sidebar-collapsed .sidebar{padding:10px 8px;}
+body.sidebar-collapsed .sidebar-user b,
+body.sidebar-collapsed .sidebar-user .badge,
+body.sidebar-collapsed #soundHint,
+body.sidebar-collapsed .nav-btn .label{opacity:0; width:0; overflow:hidden;}
+body.sidebar-collapsed .sidebar-toggle{font-size:16px;}
+body.sidebar-collapsed .nav-btn{justify-content:center; background:#4a515a; color:#fff;}
+body.sidebar-collapsed .nav-btn .icon{margin:0;}
+@media (max-width: 980px){
+  .app-shell{grid-template-columns:1fr;}
+  .sidebar{position:static; height:auto;}
+}
+
 .auth-shell{max-width:360px; margin:220px auto 0; display:flex; flex-direction:column; align-items:center; gap:16px;}
 .auth-gif-wrap{width:100%; display:flex; justify-content:center;}
 .auth-gif{width:240px; max-width:100%; border-radius:12px; border:1px solid #30363d; box-shadow:0 10px 30px rgba(0,0,0,.45); object-fit:cover; background:#000;}
@@ -152,11 +181,17 @@
 </div>
 </div>
 <div class="hidden" id="main-ui">
-<div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-<div>👤 <b id="uLabel"></b> <span class="badge" id="rLabel"></span> <span id="soundHint" style="font-size:11px; color:#8b949e; margin-left:8px"></span></div>
-<div id="nav-buttons">
-</div>
-</div>
+<div class="app-shell">
+  <aside class="sidebar card" id="app-sidebar">
+    <div class="sidebar-user">
+      <div>👤 <b id="uLabel"></b></div>
+      <span class="badge" id="rLabel"></span>
+      <span id="soundHint" style="font-size:11px; color:#8b949e;"></span>
+    </div>
+    <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Свернуть/развернуть меню">⮜</button>
+    <nav id="nav-buttons"></nav>
+  </aside>
+  <div class="app-content">
 <div class="hidden layout" id="tab-work">
 <div class="card" style="text-align:center">
 <div id="client-area" style="margin-top:50px;">
@@ -272,6 +307,21 @@
 </div>
 </div>
 <div class="hidden card" id="tab-logs"><h3>📋 Лог звонков</h3><table id="table-logs"><thead><tr><th>Время</th><th>Опер</th><th>Клиент</th><th>Статус</th><th>Инфо</th></tr></thead><tbody></tbody></table></div>
+<div id="tab-admin-stats" class="card hidden">
+  <h3 style="margin:0 0 10px 0;">📊 Статистика пользователей</h3>
+  <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+    <label style="font-size:13px;">Дата:
+      <input type="date" id="adminStatsDate" style="margin-left:8px;">
+    </label>
+    <button class="btn-green" id="adminStatsLoadBtn">⟳ Показать</button>
+    <button class="btn-gray" id="adminStatsDownloadBtn">📥 Скачать Excel</button>
+	<button class="btn-yel" id="kupatExportBtn">📦 Скачать Купат Excel</button>
+    <span class="muted" style="font-size:12px;">Только админ. Считает клики “ПОЗВОНИТЬ” и кнопки (НДЗ/АВТО/ОТКАЗ/ИВРИТ/ПЕРЕДАЛ/НА КУПАТ).</span>
+  </div>
+  <div id="adminStatsBox" class="card" style="margin-top:12px; padding:12px; background:rgba(13,17,23,0.6); border:1px solid #30363d; min-height:160px;">
+    Выбери дату и нажми “Показать”.
+  </div>
+</div>
 <div class="hidden" id="tab-admin">
 <div class="layout">
 <div class="card">
@@ -325,6 +375,24 @@
   <div class="db-meta-item"><div class="k">Осталось доступных номеров</div><div class="v" id="dbActiveRemaining">—</div></div>
 </div>
 </div>
+<div id="tab-admin-stats" class="card hidden">
+  <h3 style="margin:0 0 10px 0;">📊 Статистика пользователей</h3>
+  <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+    <label style="font-size:13px;">Дата:
+      <input type="date" id="adminStatsDate" style="margin-left:8px;">
+    </label>
+    <button class="btn-green" id="adminStatsLoadBtn">⟳ Показать</button>
+    <button class="btn-gray" id="adminStatsDownloadBtn">📥 Скачать Excel</button>
+	<button class="btn-yel" id="kupatExportBtn">📦 Скачать Купат Excel</button>
+    <span class="muted" style="font-size:12px;">Только админ. Считает клики “ПОЗВОНИТЬ” и кнопки (НДЗ/АВТО/ОТКАЗ/ИВРИТ/ПЕРЕДАЛ/НА КУПАТ).</span>
+  </div>
+  <div id="adminStatsBox" class="card" style="margin-top:12px; padding:12px; background:rgba(13,17,23,0.6); border:1px solid #30363d; min-height:160px;">
+    Выбери дату и нажми “Показать”.
+  </div>
+</div>
+</div>
+</div>
+</div>
 </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -345,25 +413,23 @@ async function downloadAutoNdz(){
 
 
 </script>
-<div id="tab-admin-stats" class="card hidden">
-  <h3 style="margin:0 0 10px 0;">📊 Статистика пользователей</h3>
-  <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-    <label style="font-size:13px;">Дата:
-      <input type="date" id="adminStatsDate" style="margin-left:8px;">
-    </label>
-    <button class="btn-green" id="adminStatsLoadBtn">⟳ Показать</button>
-    <button class="btn-gray" id="adminStatsDownloadBtn">📥 Скачать Excel</button>
-	<button class="btn-yel" id="kupatExportBtn">📦 Скачать Купат Excel</button>
-    <span class="muted" style="font-size:12px;">Только админ. Считает клики “ПОЗВОНИТЬ” и кнопки (НДЗ/АВТО/ОТКАЗ/ИВРИТ/ПЕРЕДАЛ/НА КУПАТ).</span>
-  </div>
-  <div id="adminStatsBox" class="card" style="margin-top:12px; padding:12px; background:rgba(13,17,23,0.6); border:1px solid #30363d; min-height:160px;">
-    Выбери дату и нажми “Показать”.
-  </div>
-</div>
+
 
 <script>
 let me = null;
 let curClient = null;
+
+const inFlightActions = new Set();
+async function withActionLock(key, fn) {
+  if (!key) return await fn();
+  if (inFlightActions.has(key)) return;
+  inFlightActions.add(key);
+  try {
+    return await fn();
+  } finally {
+    inFlightActions.delete(key);
+  }
+}
 
 function trackEvent(action, phone='', extra='') {
   try {
@@ -730,67 +796,84 @@ async function login() {
     }
 }
 
+function getNavItemsByRole(role) {
+    const items = {
+        admin: [
+            { tab:'work', icon:'📞', label:'Обзвон' },
+            { tab:'notes', icon:'📝', label:'Заметки' },
+            { tab:'create-order', icon:'➕', label:'Создать заявку' },
+            { tab:'my-orders', icon:'📤', label:'История' },
+            { tab:'tech', icon:'🛠', label:'Техник' },
+            { tab:'tech-my', icon:'🧰', label:'Мои техники' },
+            { tab:'returns', icon:'↩', label:'Возвраты' },
+            { tab:'closer', icon:'✅', label:'Закрыв' },
+            { tab:'kupat', icon:'🏷', label:'Купат' },
+            { tab:'income', icon:'💵', label:'Доход' },
+            { tab:'logs', icon:'📒', label:'Лог звонков' },
+            { tab:'admin', icon:'🧑‍💼', label:'Админ' },
+            { tab:'admin-stats', icon:'📊', label:'Статистика' },
+            { tab:'callbacks', icon:'🔁', label:'Перезвон' }
+        ],
+        user: [
+            { tab:'work', icon:'📞', label:'Обзвон' },
+            { tab:'notes', icon:'📝', label:'Заметки' },
+            { tab:'create-order', icon:'➕', label:'Создать заявку' },
+            { tab:'my-orders', icon:'📤', label:'История' },
+            { tab:'callbacks', icon:'🔁', label:'Перезвон' },
+            { tab:'returns', icon:'↩', label:'Возвраты' }
+        ],
+        tech: [
+            { tab:'tech', icon:'🛠', label:'Входящие' },
+            { tab:'tech-my', icon:'🧰', label:'Мои техники' },
+            { tab:'callbacks', icon:'🔁', label:'Перезвоны' },
+            { tab:'notes', icon:'📝', label:'Заметки' },
+            { tab:'create-order', icon:'➕', label:'Создать заявку' },
+            { tab:'my-orders', icon:'📤', label:'История' },
+            { tab:'returns', icon:'↩', label:'Возвраты' }
+        ],
+        closer: [
+            { tab:'closer', icon:'✅', label:'Закрыв' },
+            { tab:'notes', icon:'📝', label:'Заметки' },
+            { tab:'create-order', icon:'➕', label:'Создать заявку' },
+            { tab:'kupat', icon:'🏷', label:'Купат' }
+        ],
+        kupat: [
+            { tab:'work', icon:'📞', label:'Обзвон' },
+            { tab:'kupat', icon:'🏷', label:'Входящие Купат' },
+            { tab:'kupat-my-clients', icon:'👴', label:'Мои клиенты' },
+            { tab:'kupat-my-transfers', icon:'📤', label:'Мои передачи' },
+            { tab:'notes', icon:'📝', label:'Заметки' },
+            { tab:'callbacks', icon:'🔁', label:'Перезвон' }
+        ]
+    };
+    return items[role] || [];
+}
+
 function setupNav() {
     const nav = document.getElementById('nav-buttons');
-    let html = '';
-    const r = me.role;
+    const items = getNavItemsByRole(me.role);
+    const buttonsHtml = items.map(item => (
+        `<button class="nav-btn" data-tab="${item.tab}" onclick="openTab('${item.tab}')"><span class="icon">${item.icon}</span><span class="label">${item.label}</span></button>`
+    )).join('');
+    const exitBtn = `<button onclick="location.reload()" class="nav-btn logout"><span class="icon">🚪</span><span class="label">Выход</span></button>`;
+    nav.innerHTML = buttonsHtml + exitBtn;
 
-    const exitBtn = `<button onclick="location.reload()" class="btn-gray">Выход</button>`;
+    const collapsed = localStorage.getItem('crmSidebarCollapsed') === '1';
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    if (toggleBtn) toggleBtn.textContent = collapsed ? '⮞' : '⮜';
 
-    if(r === 'admin'){
-        html += `<button onclick="openTab('work')">📞 Обзвон</button>`;
-        html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
-        html += `<button onclick="openTab('create-order')">➕ Создать заявку</button>`;
-        html += `<button onclick="openTab('my-orders')">История</button>`;
-        html += `<button onclick="openTab('tech')">🛠 Техник</button>`;
-        html += `<button onclick="openTab('tech-my')">🧰 Мои техники</button>`;
-        html += `<button onclick="openTab('returns')">↩ Возвраты</button>`;
-        html += `<button onclick="openTab('closer')">✅ Закрыв</button>`;
-        html += `<button onclick="openTab('kupat')">🏷 Купат</button>`;
-                html += `<button onclick="openTab('income')">💵 Доход</button>`;
-        html += `<button onclick="openTab('logs')">📒 Лог звонков</button>`;
-        html += `<button onclick="openTab('admin')">🧑‍💼 Админ</button>`;
-        html += `<button onclick="openTab('admin-stats')">📊 Статистика</button>`;
-		        html += `<button onclick="openTab('callbacks')">🔁 Перезвон</button>`;
-        nav.innerHTML = html + exitBtn;
-        return;
-    }
-
-    if(r === 'user') {
-        html += `<button onclick="openTab('work')">📞 Обзвон</button>`;
-        html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
-        html += `<button onclick="openTab('create-order')">➕ Создать заявку</button>`;
-        html += `<button onclick="openTab('my-orders')">История</button>`;
-		html += `<button onclick="openTab('callbacks')">🔁 Перезвон</button>`;
-    }
-    if(r === 'tech') {
-        html += `<button onclick="openTab('tech')">🛠 Входящие</button>`;
-        html += `<button onclick="openTab('tech-my')">🧰 Мои техники</button>`;
-	    html += `<button onclick="openTab('callbacks')">🔁 Перезвоны</button>`;
-		html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
-        html += `<button onclick="openTab('create-order')">➕ Создать заявку</button>`;
-        html += `<button onclick="openTab('my-orders')">История</button>`;
-    }
-    if(r === 'closer') {
-        html += `<button onclick="openTab('closer')">✅ Закрыв</button>`;
-        html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
-        html += `<button onclick="openTab('create-order')">➕ Создать заявку</button>`;
-        html += `<button onclick="openTab('kupat')">🏷 Купат</button>`;
-    }
-    if(r === 'kupat') {
-		html += `<button onclick="openTab('work')">📞 Обзвон</button>`;
-		html += `<button onclick="openTab('kupat')">🏷 Входящие Купат</button>`;
-        html += `<button onclick="openTab('kupat-my-clients')">👴 Мои клиенты</button>`;
-        html += `<button onclick="openTab('kupat-my-transfers')">📤 Мои передачи</button>`;
-		html += `<button onclick="openTab('notes')">📝 Заметки</button>`;
-		html += `<button onclick="openTab('callbacks')">🔁 Перезвон</button>`;
-    }
-    if(r === 'tech' || r === 'user') {
-        html += `<button onclick="openTab('returns')">↩ Возвраты</button>`;
-    }
-
-        nav.innerHTML = html + exitBtn;
+    if (items.length) openTab(items[0].tab);
 }
+
+function toggleSidebar() {
+    const collapsed = !document.body.classList.contains('sidebar-collapsed');
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    localStorage.setItem('crmSidebarCollapsed', collapsed ? '1' : '0');
+    const toggleBtn = document.getElementById('sidebar-toggle');
+    if (toggleBtn) toggleBtn.textContent = collapsed ? '⮞' : '⮜';
+}
+window.toggleSidebar = toggleSidebar;
 
 
 function setMyTitle() {
@@ -811,7 +894,11 @@ async function openTab(name) {
     
     const showEl = document.getElementById('tab-'+name);
     if(showEl) showEl.classList.remove('hidden');
-    
+
+    document.querySelectorAll('#nav-buttons .nav-btn[data-tab]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === name);
+    });   
+
     if(name === 'notes') { await loadNotes(); }
     if(name === 'callbacks') { await loadCallbacks(); }
     if(name === 'my-orders') { setMyTitle(); loadOrders('my-orders'); }
@@ -911,13 +998,16 @@ function toggleCatsEaster(){
 }
 
 async function sendResult(status) {
-    trackEvent(status, curClient?.phone || '', document.getElementById('note')?.value || '');
-    const note = document.getElementById('note').value;
-    await fetch('/api/save-result', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ status, user: me.login, role: me.role, phone: curClient.phone, name: curClient.name, note })
+    const lockKey = `sendResult:${me?.login || ''}:${status}:${curClient?.phone || ''}`;
+    await withActionLock(lockKey, async () => {
+        trackEvent(status, curClient?.phone || '', document.getElementById('note')?.value || '');
+        const note = document.getElementById('note').value;
+        await fetch('/api/save-result', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ status, user: me.login, role: me.role, phone: curClient.phone, name: curClient.name, note })
+        });
+        nextClient();
     });
-    nextClient(); // Сразу следующий
 }
 
 
@@ -1344,24 +1434,18 @@ async function loadKupat() {
 
 
 async function loadKupatMyClients() {
-    const [kupatRes, bankRes] = await Promise.all([
-      fetch(`/api/kupat/list?login=${me.login}&role=${me.role}&view=all`),
-      fetch(`/api/orders?login=${me.login}&role=${me.role}&view=my-orders`)
-    ]);
+    const kupatRes = await fetch(`/api/kupat/list?login=${me.login}&role=${me.role}&view=all`);
     const data = await kupatRes.json();
-    const bankOrdersRaw = await bankRes.json();
     const mine = (Array.isArray(data) ? data : []).filter(o => o.kupatUser === me.login);
-    const bankOrders = (Array.isArray(bankOrdersRaw) ? bankOrdersRaw : []).map(o => ({ ...o, _source: 'orders_bank' }));
-    const mergedMine = mine.concat(bankOrders);
-	window._kupatAllCache = Array.isArray(data) ? data : [];
+    window._kupatAllCache = Array.isArray(data) ? data : [];
     window._kupatMyClientsCache = mine;
 
-    const active = mergedMine.filter(o => o.status === 'kupat_work' || o.status === 'closer');
-    const archive = mergedMine.filter(o => ['kupat_ndz','kupat_auto','kupat_ivrit','kupat_refuse','kupat_final','final'].includes(o.status));
+    const active = mine.filter(o => o.status === 'kupat_work');
+    const archive = mine.filter(o => ['kupat_ndz','kupat_auto','kupat_ivrit','kupat_refuse'].includes(o.status));
 
     const renderMine = (o) => renderCompactClientCard(o, `
-	    ${(o._source !== 'orders_bank' && (me.role === 'kupat' || me.role === 'admin')) ? `<button class="btn-red" title="Удалить карточку" onclick="deleteKupatClient(${o.id})">✕</button>` : ''}
-        ${o._source !== 'orders_bank' && o.status === 'kupat_work' ? `
+        ${(me.role === 'kupat' || me.role === 'admin') ? `<button class="btn-red" title="Удалить карточку" onclick="deleteKupatClient(${o.id})">✕</button>` : ''}
+        ${o.status === 'kupat_work' ? `
             <button class="btn-yel" onclick="kupatAction(${o.id}, 'kupat_ndz')">НДЗ</button>
             <button class="btn-blue" onclick="kupatAction(${o.id}, 'kupat_auto')">АВТО</button>
             <button class="btn-pur" onclick="kupatAction(${o.id}, 'kupat_ivrit')">ИВРИТ</button>
@@ -1384,15 +1468,25 @@ async function loadKupatMyClients() {
 
 
 async function loadKupatMyTransfers() {
-    const r = await fetch(`/api/kupat/list?login=${me.login}&role=${me.role}&view=all`);
-    const data = await r.json();
-    const mineTransfers = (Array.isArray(data) ? data : []).filter(o => o.kupatUser === me.login && (o.status === 'kupat_to_closer' || o.status === 'kupat_final'));
-    const inWork = mineTransfers.filter(o => o.status === 'kupat_to_closer');
-    const closed = mineTransfers.filter(o => o.status === 'kupat_final');
+    const [kupatRes, bankRes] = await Promise.all([
+      fetch(`/api/kupat/list?login=${me.login}&role=${me.role}&view=all`),
+      fetch(`/api/orders?login=${me.login}&role=${me.role}&view=my-orders`)
+    ]);
+    const kupatData = await kupatRes.json();
+    const bankRaw = await bankRes.json();
+
+    const kupatTransfers = (Array.isArray(kupatData) ? kupatData : []).filter(o => o.kupatUser === me.login && (o.status === 'kupat_to_closer' || o.status === 'kupat_final'));
+    const bankTransfers = (Array.isArray(bankRaw) ? bankRaw : [])
+      .filter(o => o.status === 'closer' || o.status === 'final')
+      .map(o => ({ ...o, _source: 'orders_bank' }));
+
+    const mineTransfers = kupatTransfers.concat(bankTransfers);
+    const inWork = mineTransfers.filter(o => o.status === 'kupat_to_closer' || o.status === 'closer');
+    const closed = mineTransfers.filter(o => o.status === 'kupat_final' || o.status === 'final');
 
     const renderTransfer = (o) => `
         <div class="order-item kupat">
-            ${(me.role === 'admin') ? `<button onclick="delItem(${o.id}, 'kupat')" class="btn-red" style="float:right; padding:2px 6px; font-size:10px">X</button>` : ''}
+            ${(me.role === 'admin') ? `<button onclick="delItem(${o.id}, '${o._source === 'orders_bank' ? 'orders' : 'kupat'}')" class="btn-red" style="float:right; padding:2px 6px; font-size:10px">X</button>` : ''}
             <div class="order-head">
                 <div>
                     <div class="order-title">${escapeHtml(o.clientName || '')}</div>
@@ -1524,6 +1618,7 @@ async function orderAction(id, type) {
 }
 
 async function techTakeInWork(id) {
+    return withActionLock(`techTakeInWork:${id}`, async () => {
     const r = await fetch('/api/orders/action', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ id, status: 'tech_work', info: 'Взял в работу', techLogin: me.login })
@@ -1532,6 +1627,7 @@ async function techTakeInWork(id) {
     if(!r.ok || d.success === false) return alert('Не удалось взять в работу: ' + (d.error || r.status));
     await Promise.all([loadOrders('tech'), loadOrders('tech-my')]);
     await openTab('tech-my');
+    });
 }
 
 async function moveTechToCallback(id){
@@ -1601,6 +1697,7 @@ async function finalOrder(id) {
 }
 
 async function kupatAction(id, status) {
+    return withActionLock(`kupatAction:${id}:${status}`, async () => {
     let note = prompt("Заметка:");
     if(note === null) return;
     if(status === 'kupat_refuse' && !String(note || '').trim()) {
@@ -1620,6 +1717,7 @@ async function kupatAction(id, status) {
         return alert('Не удалось изменить статус: ' + err);
     }
     await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
+    });
 }
 
 async function kupatTakeInWork(id, selectId) {
@@ -2611,6 +2709,8 @@ async function callbackToTech(id){
 
 async function transferCurrentDialToTech(callbackAtUtc2){
   const c = window.curClient || null;
+  const lockKey = `dialTransfer:${me?.login || ''}:${c?.phone || ''}:${callbackAtUtc2 || ''}`;
+  return withActionLock(lockKey, async () => {
   if(!c || !c.phone) return alert('Сначала нажми "НАЧАТЬ ОБЗВОН".');
   const note = (document.getElementById('note')?.value || '').trim();
 
@@ -2644,6 +2744,7 @@ async function transferCurrentDialToTech(callbackAtUtc2){
   trackEvent('ПЕРЕДАЛ', c.phone || '', note);
   closeCallbackTechModal();
   await advanceDialAfterTransfer('ПЕРЕДАЛ', { skipOrderCreate: true });
+  });
 }
 
 async function submitCallbackTechModal(){
@@ -2744,6 +2845,8 @@ async function createOrderToTech(){
 
   const details = `Имя: ${name}\nНомер: ${phone}\n\nТЗ: ${tz}\nАдрес: ${address}\nВозраст: ${age}\n\nДоп.Инфа:\n${extra}`.trim();
 
+  const lockKey = `createOrderToTech:${me?.login || ''}:${phone}`;
+  return withActionLock(lockKey, async () => {
   try{
     if(st) st.textContent='Отправка...';
     const r = await fetch('/api/orders/create-direct', {
@@ -2776,6 +2879,7 @@ async function createOrderToTech(){
   }catch(e){
     if(st){ st.textContent='Ошибка сети'; st.classList.add('err'); }
   }
+  });
 }
 
 </script>

@@ -497,19 +497,29 @@ if (st === 'AUTO' || st === 'АВТО') {
   if(nph){ usedPhones.add(nph); saveUsedPhones(); }
 
   if (status === 'ПЕРЕДАЛ' && !skipOrderCreate) {
-    orders.push({
-      id: Date.now(),
-      operator: user,
-      opToTechAt: nowUtc2Str(),
-      clientName: name,
-      phone,
-      details: note ?? '',
-      time,
-      status: 'new',
-      tech: null,
-      closer: null,
-    });
-    saveData(DB_FILES.orders, orders);
+    const recentDuplicate = orders.some((o) =>
+      o &&
+      o.status === 'new' &&
+      String(o.operator || '') === String(user || '') &&
+      normPhone(o.phone || '') === normPhone(phone || '') &&
+      (Date.now() - new Date(String(o.time || '').replace(' ', 'T')).getTime()) < 15000
+    );
+
+    if (!recentDuplicate) {
+      orders.push({
+        id: Date.now(),
+        operator: user,
+        opToTechAt: nowUtc2Str(),
+        clientName: name,
+        phone,
+        details: note ?? '',
+        time,
+        status: 'new',
+        tech: null,
+        closer: null,
+      });
+      saveData(DB_FILES.orders, orders);
+    }
   } else if (status === 'НА КУПАТ') {
     appendKupatToExcel({ operator: user, name, phone, note: note ?? '' });
 
@@ -527,18 +537,30 @@ if (st === 'AUTO' || st === 'АВТО') {
     });
     saveData(DB_FILES.kupat, kupatOrders);
   } else if (status === 'НА БАНК' && role === 'kupat') {
-    orders.push({
-      id: Date.now(),
-      operator: user,
-      clientName: name,
-      phone,
-      details: note ?? '',
-      time,
-      status: 'closer',
-      tech: null,
-      closer: null,
-    });
-    saveData(DB_FILES.orders, orders);
+    const recentDuplicate = orders.some((o) =>
+      o &&
+      (o.status === 'closer' || o.status === 'final') &&
+      String(o.operator || '') === String(user || '') &&
+      normPhone(o.phone || '') === normPhone(phone || '') &&
+      (Date.now() - new Date(String(o.time || '').replace(' ', 'T')).getTime()) < 15000
+    );
+
+    if (!recentDuplicate) {
+      orders.push({
+        id: Date.now(),
+        operator: user,
+        clientName: name,
+        phone,
+        details: note ?? '',
+        time,
+        status: 'closer',
+        tech: null,
+        closer: null,
+        kupatUser: user,
+        opToBankAt: nowUtc2Str(),
+      });
+      saveData(DB_FILES.orders, orders);
+    }
   }
 
   res.json({ success: true });
