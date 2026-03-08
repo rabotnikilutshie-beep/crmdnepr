@@ -17,6 +17,13 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+function isImageFile(file) {
+  if (!file) return false;
+  const mime = String(file.mimetype || '').toLowerCase();
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  return mime.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext);
+}
+
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
@@ -1150,6 +1157,71 @@ app.post('/api/delete-item', (req, res) => {
 
 app.get('/api/users', (req,res)=>{
   res.json({users: users.map(u=>({login:u.login, role:u.role, balance: Number(u.balance||0)}))});
+});
+
+app.get('/api/profile/stats', (req, res) => {
+  const { login, date } = req.query || {};
+  const userLogin = String(login || '').trim();
+  const day = String(date || '').slice(0, 10);
+  if (!userLogin) return res.status(400).json({ error: 'login_required' });
+  if (!day) return res.status(400).json({ error: 'date_required' });
+
+  const u = (users || []).find(x => x && x.login === userLogin);
+  if (!u) return res.status(404).json({ error: 'user_not_found' });
+
+  const log = Array.isArray(statsLogCache) ? statsLogCache : [];
+  const events = log.filter(e => e && e.login === userLogin && isoDate(e.ts) === day);
+  const labels = ['НДЗ', 'АВТО', 'ПЕРЕДАЛ', 'НА КУПАТ', 'НА БАНК', 'ОТКАЗ', 'ИВРИТ', 'ЗАКРЫЛ', 'ВЗЯЛ В РАБОТУ', 'ПЕРЕЗВОН'];
+  const buckets = Object.fromEntries(labels.map(label => [label, 0]));
+
+  for (const e of events) {
+    const a = String(e.action || '').toUpperCase();
+    if (a === 'НДЗ' || a === 'NDZ' || a === 'KUPAT_NDZ' || a === 'RETURN') buckets['НДЗ'] += 1;
+    else if (a === 'АВТО' || a === 'AUTO' || a === 'KUPAT_AUTO') buckets['АВТО'] += 1;
+    else if (a.includes('ПЕРЕД') || a === 'CREATE_ORDER') buckets['ПЕРЕДАЛ'] += 1;
+    else if (a.includes('КУПАТ')) buckets['НА КУПАТ'] += 1;
+    else if (a.includes('БАНК') || a === 'CLOSER' || a === 'KUPAT_TO_CLOSER') buckets['НА БАНК'] += 1;
+    else if (a.includes('ОТКАЗ') || a === 'REFUSE' || a === 'KUPAT_REFUSE') buckets['ОТКАЗ'] += 1;
+    else if (a.includes('ИВРИТ') || a.includes('IVRIT') || a === 'HEBREW' || a === 'KUPAT_IVRIT') buckets['ИВРИТ'] += 1;
+    else if (a.includes('ЗАКР') || a === 'FINAL' || a === 'KUPAT_FINAL') buckets['ЗАКРЫЛ'] += 1;
+    else if (a.includes('В РАБОТУ') || a === 'TECH_WORK' || a === 'KUPAT_WORK') buckets['ВЗЯЛ В РАБОТУ'] += 1;
+    else if (a.includes('ПЕРЕЗВОН') || a === 'TECH_CALLBACK' || a === 'KUPAT_CALLBACK') buckets['ПЕРЕЗВОН'] += 1;
+  }
+
+  const rows = labels.map(label => ({ label, value: buckets[label] || 0 }));
+  const total = rows.reduce((sum, item) => sum + Number(item.value || 0), 0);
+  res.json({ login: userLogin, date: day, total, rows });
+});
+
+app.post('/api/profile/avatar', upload.single('avatar'), (req, res) => {
+  const login = String((req.body || {}).login || '').trim();
+  if (!login) {
+    if (req.file) { try { fs.unlinkSync(req.file.path); } catch (e) {} }
+    return res.status(400).json({ success: false, error: 'login_required' });
+  }
+  if (!req.file || !isImageFile(req.file)) {
+    if (req.file) { try { fs.unlinkSync(req.file.path); } catch (e) {} }
+    return res.status(400).json({ success: false, error: 'image_required' });
+  }
+
+  const idx = (users || []).findIndex(x => x && x.login === login);
+  if (idx < 0) {
+    try { fs.unlinkSync(req.file.path); } catch (e) {}
+    return res.status(404).json({ success: false, error: 'user_not_found' });
+  }
+
+  const prevAvatar = String(users[idx].avatar || '');
+  users[idx] = { ...users[idx], avatar: '/uploads/' + req.file.filename };
+  saveData(DB_FILES.users, users);
+
+  if (prevAvatar.startsWith('/uploads/')) {
+    const prevPath = path.join(__dirname, prevAvatar.replace('/uploads/', 'uploads/'));
+    if (prevPath !== req.file.path) {
+      try { fs.unlinkSync(prevPath); } catch (e) {}
+    }
+  }
+
+  res.json({ success: true, avatar: users[idx].avatar });
 });
 
 app.post('/api/users/delete', (req, res) => {

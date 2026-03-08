@@ -136,6 +136,9 @@
 .app-content{min-width:0;}
 .sidebar{position:sticky; top:12px; height:calc(100vh - 24px); margin-bottom:0; padding:12px; display:flex; flex-direction:column; gap:10px; transition:width .28s ease, padding .28s ease; overflow:hidden;}
 .sidebar-user{display:flex; flex-direction:column; gap:6px; padding:8px; border:1px solid #30363d; border-radius:10px; background:rgba(13,17,23,0.75);}
+.sidebar-avatar-wrap{display:flex; justify-content:center; margin-bottom:2px;}
+.sidebar-avatar{width:72px; height:72px; border-radius:14px; border:1px solid #30363d; object-fit:cover; background:#0d1117; transition:transform .25s ease, box-shadow .25s ease;}
+.sidebar-avatar:hover{transform:scale(1.04); box-shadow:0 8px 24px rgba(0,0,0,.35);}
 .sidebar-toggle{width:100%; margin:0; background:#21262d; border:1px solid #3f4750; color:#d2d8df;}
 #nav-buttons{display:flex; flex-direction:column; gap:8px; overflow:auto; padding-right:2px;}
 .nav-btn{display:flex; align-items:center; gap:10px; width:100%; margin:0; background:linear-gradient(135deg,#6d3df0,#8e5cff); color:#fff; text-align:left; border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px 12px; transition:background .24s ease, transform .2s ease, color .24s ease, width .28s ease;}
@@ -143,14 +146,14 @@
 .nav-btn .label{white-space:nowrap; transition:opacity .22s ease, width .25s ease;}
 
 .sidebar-user b, .sidebar-user .badge, #soundHint{transition:opacity .22s ease, width .25s ease;}
+.sidebar-user-meta{display:flex; flex-direction:column; gap:6px;}
 .nav-btn.active{box-shadow:0 0 0 2px rgba(175,133,255,0.35) inset;}
 .nav-btn.logout{margin-top:6px; background:#30363d;}
 body.sidebar-collapsed .app-shell{grid-template-columns:88px minmax(0,1fr);}
 body.sidebar-collapsed .sidebar{padding:10px 8px;}
-body.sidebar-collapsed .sidebar-user b,
-body.sidebar-collapsed .sidebar-user .badge,
-body.sidebar-collapsed #soundHint,
-body.sidebar-collapsed .nav-btn .label{opacity:0; width:0; overflow:hidden;}
+body.sidebar-collapsed .sidebar-user{padding:8px 4px; align-items:center;}
+body.sidebar-collapsed .sidebar-user-meta,
+body.sidebar-collapsed .nav-btn .label{display:none !important;}
 body.sidebar-collapsed .sidebar-toggle{font-size:16px;}
 body.sidebar-collapsed .nav-btn{justify-content:center; background:#4a515a; color:#fff;}
 body.sidebar-collapsed .nav-btn .icon{margin:0;}
@@ -158,6 +161,22 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
   .app-shell{grid-template-columns:1fr;}
   .sidebar{position:static; height:auto;}
 }
+
+
+.tab-panel{animation:tabFade .28s ease;}
+@keyframes tabFade{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+#tab-profile .profile-grid{display:grid; grid-template-columns:minmax(320px,1fr) 320px; gap:14px; align-items:start;}
+#tab-profile .profile-card{background:rgba(13,17,23,0.66); border:1px solid #30363d; border-radius:12px; padding:14px;}
+#tab-profile .chart-wrap{display:flex; align-items:center; justify-content:center; min-height:300px;}
+#profileDonut{--donut:conic-gradient(#2f81f7 0deg, #2f81f7 360deg); width:min(420px, 80vw); aspect-ratio:1/1; border-radius:50%; background:var(--donut); position:relative; transition:background .35s ease;}
+#profileDonut::after{content:""; position:absolute; inset:24%; border-radius:50%; background:#0d1117; border:1px solid #30363d;}
+#profileDonutCenter{position:absolute; inset:0; display:grid; place-items:center; z-index:2; text-align:center; font-weight:800; pointer-events:none;}
+#profileLegend{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-top:12px;}
+.profile-legend-item{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:8px 10px; font-size:13px;}
+.profile-legend-item b{white-space:nowrap;}
+.profile-dot{width:10px; height:10px; border-radius:50%; flex:0 0 10px;}
+.avatar-preview{width:140px; height:140px; border-radius:22px; border:1px solid #30363d; object-fit:cover; background:#0d1117; display:block; margin:0 auto 10px;}
+@media (max-width: 1200px){ #tab-profile .profile-grid{grid-template-columns:1fr;} }
 
 .auth-shell{max-width:360px; margin:220px auto 0; display:flex; flex-direction:column; align-items:center; gap:16px;}
 .auth-gif-wrap{width:100%; display:flex; justify-content:center;}
@@ -184,15 +203,45 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
 <div class="app-shell">
   <aside class="sidebar card" id="app-sidebar">
     <div class="sidebar-user">
-      <div>👤 <b id="uLabel"></b></div>
-      <span class="badge" id="rLabel"></span>
-      <span id="soundHint" style="font-size:11px; color:#8b949e;"></span>
+      <div class="sidebar-avatar-wrap"><img id="sidebarAvatar" class="sidebar-avatar" src="" alt="avatar"></div>
+      <div class="sidebar-avatar-wrap"><img id="sidebarAvatar" class="sidebar-avatar" src="" alt="avatar"></div>
+      <div class="sidebar-user-meta">
+        <div>👤 <b id="uLabel"></b></div>
+        <span class="badge" id="rLabel"></span>
+        <span id="soundHint" style="font-size:11px; color:#8b949e;"></span>
+      </div>
     </div>
     <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Свернуть/развернуть меню">⮜</button>
     <nav id="nav-buttons"></nav>
   </aside>
   <div class="app-content">
-<div class="hidden layout" id="tab-work">
+<div class="hidden card tab-panel" id="tab-profile">
+  <h3 style="margin-top:0">👤 Профиль</h3>
+  <div class="profile-grid">
+    <div class="profile-card">
+      <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;">
+        <label>Дата статистики
+          <input type="date" id="profileDate" style="margin-top:6px; min-width:180px;">
+        </label>
+        <button class="btn-blue" onclick="loadProfileStats()">Обновить диаграмму</button>
+      </div>
+      <div class="chart-wrap">
+        <div id="profileDonut">
+          <div id="profileDonutCenter">0%</div>
+        </div>
+      </div>
+      <div id="profileLegend"></div>
+    </div>
+    <div class="profile-card">
+      <h4 style="margin-top:0">Аватар</h4>
+      <img id="profileAvatarPreview" class="avatar-preview" alt="avatar">
+      <input id="avatarInput" type="file" accept="image/*">
+      <button class="btn-vio" style="width:100%" onclick="uploadAvatar()">Сохранить аватар</button>
+      <div class="muted" style="font-size:12px; margin-top:8px">В свернутом меню аватар автоматически подстроится под размер экрана.</div>
+    </div>
+  </div>
+</div>
+<div class="hidden layout tab-panel" id="tab-work">
 <div class="card" style="text-align:center">
 <div id="client-area" style="margin-top:50px;">
 <button class="btn-blue" onclick="nextClient()" style="padding:15px 30px; font-size:18px;">НАЧАТЬ ОБЗВОН</button>
@@ -210,7 +259,7 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
 <button onclick="toggleCatsEaster()" style="position:absolute; right:10px; bottom:8px; font-size:12px; color:#000; background:transparent; border:none; padding:2px 4px; margin:0;">котики</button>
 </div>
 </div>
-<div class="hidden card" id="tab-create-order">
+<div class="hidden card tab-panel" id="tab-create-order">
     <h2>➕ Создать заявку</h2>
     <div class="panel">
       <div class="row">
@@ -248,7 +297,7 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
     </div>
   </div>
 
-<div class="hidden card" id="tab-notes">
+<div class="hidden card tab-panel" id="tab-notes">
   <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
     <h3 style="margin:0">📝 Заметки</h3>
     <button class="btn-pur" onclick="openNotesModal({source:'manual'}, 'Новая заметка')">➕ Добавить заметку</button>
@@ -256,16 +305,16 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
   <div id="notes-list" style="margin-top:10px"></div>
 </div>
 
-<div class="hidden card" id="tab-callbacks"><h3>🔁 Перезвон</h3><div id="list-callbacks"></div></div>
-<div class="hidden card" id="tab-my-orders"><h3 id="my-title">📤 История</h3><div id="list-my"></div></div>
-<div class="hidden card" id="tab-tech"><h3>🛠 Заявки (Техник)</h3><div id="list-tech"></div></div>
-<div class="hidden card" id="tab-tech-my"><h3>🧰 Мои техники</h3><div id="list-tech-my"></div></div>
-<div class="hidden card" id="tab-returns"><h3>↩ Возвраты / НДЗ</h3><div id="list-returns"></div></div>
-<div class="hidden card" id="tab-closer"><h3>💰 Закрытие сделок</h3><div id="list-closer"></div></div>
-<div class="hidden card" id="tab-kupat"><h3>👴 База "На Купат"</h3><div id="list-kupat"></div></div>
-<div class="hidden card" id="tab-kupat-my-clients"><h3>👴 Мои клиенты (Купат)</h3><div id="list-kupat-my-clients"></div></div>
-<div class="hidden card" id="tab-kupat-my-transfers"><h3>📤 Мои передачи (Купат)</h3><div id="list-kupat-my-transfers"></div></div>
-<div class="hidden card" id="tab-income">
+<div class="hidden card tab-panel" id="tab-callbacks"><h3>🔁 Перезвон</h3><div id="list-callbacks"></div></div>
+<div class="hidden card tab-panel" id="tab-my-orders"><h3 id="my-title">📤 История</h3><div id="list-my"></div></div>
+<div class="hidden card tab-panel" id="tab-tech"><h3>🛠 Заявки (Техник)</h3><div id="list-tech"></div></div>
+<div class="hidden card tab-panel" id="tab-tech-my"><h3>🧰 Мои техники</h3><div id="list-tech-my"></div></div>
+<div class="hidden card tab-panel" id="tab-returns"><h3>↩ Возвраты / НДЗ</h3><div id="list-returns"></div></div>
+<div class="hidden card tab-panel" id="tab-closer"><h3>💰 Закрытие сделок</h3><div id="list-closer"></div></div>
+<div class="hidden card tab-panel" id="tab-kupat"><h3>👴 База "На Купат"</h3><div id="list-kupat"></div></div>
+<div class="hidden card tab-panel" id="tab-kupat-my-clients"><h3>👴 Мои клиенты (Купат)</h3><div id="list-kupat-my-clients"></div></div>
+<div class="hidden card tab-panel" id="tab-kupat-my-transfers"><h3>📤 Мои передачи (Купат)</h3><div id="list-kupat-my-transfers"></div></div>
+<div class="hidden card tab-panel" id="tab-income">
 <h3>💵 Доход</h3>
 <div style="color:#8b949e; font-size:13px; margin-bottom:10px">
         Доступно только для админа. Калькулятор зарплаты — пока без сохранения.
@@ -306,7 +355,7 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
 <iframe allow="clipboard-read; clipboard-write" class="sheet-embed-frame" loading="lazy" src="https://docs.google.com/spreadsheets/d/1MwFxc39h5qEDCTwB5L7EfH_oUeaBc7NXPj-8_83ZTHA/edit?gid=458847795#gid=458847795" title="Google таблица"></iframe>
 </div>
 </div>
-<div class="hidden card" id="tab-logs"><h3>📋 Лог звонков</h3><table id="table-logs"><thead><tr><th>Время</th><th>Опер</th><th>Клиент</th><th>Статус</th><th>Инфо</th></tr></thead><tbody></tbody></table></div>
+<div class="hidden card tab-panel" id="tab-logs"><h3>📋 Лог звонков</h3><table id="table-logs"><thead><tr><th>Время</th><th>Опер</th><th>Клиент</th><th>Статус</th><th>Инфо</th></tr></thead><tbody></tbody></table></div>
 <div id="tab-admin-stats" class="card hidden">
   <h3 style="margin:0 0 10px 0;">📊 Статистика пользователей</h3>
   <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
@@ -429,6 +478,99 @@ async function withActionLock(key, fn) {
   } finally {
     inFlightActions.delete(key);
   }
+}
+
+
+
+const PROFILE_COLORS = ['#2f81f7','#3fb950','#e3b341','#d2a8ff','#f778ba','#ff7b72','#58a6ff','#a371f7'];
+
+function getAvatarUrl() {
+    if (me && me.avatar) return me.avatar;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><rect width="100%" height="100%" fill="#0d1117"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" font-size="64" fill="#6e7681">👤</text></svg>');
+}
+
+function refreshAvatarViews() {
+    const url = getAvatarUrl();
+    const side = document.getElementById('sidebarAvatar');
+    const preview = document.getElementById('profileAvatarPreview');
+    if (side) side.src = url;
+    if (preview) preview.src = url;
+}
+
+async function uploadAvatar() {
+    const fileEl = document.getElementById('avatarInput');
+    const file = fileEl && fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+    if (!file) return alert('Выбери картинку.');
+    const fd = new FormData();
+    fd.append('login', me.login);
+    fd.append('avatar', file);
+    const r = await fetch('/api/profile/avatar', { method:'POST', body: fd });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.success) return alert(d.error || 'Ошибка загрузки');
+    me.avatar = d.avatar;
+    refreshAvatarViews();
+    alert('Аватар сохранён');
+}
+
+function buildDonut(rows, total, day) {
+    const donut = document.getElementById('profileDonut');
+    const center = document.getElementById('profileDonutCenter');
+    const legend = document.getElementById('profileLegend');
+    if (!donut || !center || !legend) return;
+
+    const valid = (rows || []).filter(x => Number(x.value || 0) > 0);
+    if (!total || !valid.length) {
+      donut.style.setProperty('--donut', 'conic-gradient(#30363d 0deg, #30363d 360deg)');
+      center.innerHTML = '<div><div style="font-size:30px">0</div><div style="font-size:12px; color:#8b949e">Нет нажатий</div></div>';
+      legend.innerHTML = '<div class="muted">За выбранный день нет событий.</div>';
+      return;
+    }
+
+    let angle = 0;
+    const parts = [];
+    legend.innerHTML = valid.map((item, i) => {
+      const pct = ((Number(item.value || 0) / total) * 100);
+      const next = angle + (pct * 3.6);
+      const color = PROFILE_COLORS[i % PROFILE_COLORS.length];
+      parts.push(`${color} ${angle.toFixed(2)}deg ${next.toFixed(2)}deg`);
+      angle = next;
+      return `<div class="profile-legend-item"><span style="display:flex; align-items:center; gap:8px;"><span class="profile-dot" style="background:${color}"></span>${escapeHtml(item.label)}</span><b>${pct.toFixed(1)}%</b></div>`;
+    }).join('');
+
+    donut.style.setProperty('--donut', `conic-gradient(${parts.join(',')})`);
+    center.innerHTML = `<div><div style=\"font-size:30px\">${total}</div><div style=\"font-size:12px; color:#8b949e\">Всего нажатий</div><div style=\"font-size:11px; color:#6e7681\">${escapeHtml(day || '')}</div></div>`;
+}
+
+async function loadProfileStats() {
+    if (!me) return;
+    const dateEl = document.getElementById('profileDate');
+    const day = (dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0,10));
+    const r = await fetch(`/api/profile/stats?login=${encodeURIComponent(me.login)}&date=${encodeURIComponent(day)}`);
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return alert(d.error || 'Ошибка статистики');
+    buildDonut(d.rows || [], Number(d.total || 0), day);
+}
+
+async function initProfileTab() {
+    const dateEl = document.getElementById('profileDate');
+    if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
+    refreshAvatarViews();
+    await loadProfileStats();
+}
+window.uploadAvatar = uploadAvatar;
+window.loadProfileStats = loadProfileStats;
+
+function normalizeProfileAction(status){
+  const s = String(status || '').toLowerCase();
+  if (s === 'return' || s === 'kupat_ndz' || s === 'ndz') return 'НДЗ';
+  if (s === 'kupat_auto' || s === 'auto' || s === 'авто') return 'АВТО';
+  if (s === 'kupat_ivrit' || s === 'ivrit' || s === 'hebrew') return 'ИВРИТ';
+  if (s === 'refuse' || s === 'kupat_refuse') return 'ОТКАЗ';
+  if (s === 'closer' || s === 'kupat_to_closer') return 'НА БАНК';
+  if (s === 'tech_work' || s === 'kupat_work') return 'ВЗЯЛ В РАБОТУ';
+  if (s === 'final' || s === 'kupat_final') return 'ЗАКРЫЛ';
+  if (s === 'tech_callback' || s === 'kupat_callback') return 'ПЕРЕЗВОН';
+  return String(status || '');
 }
 
 function trackEvent(action, phone='', extra='') {
@@ -772,6 +914,7 @@ async function login() {
             document.getElementById('main-ui').classList.remove('hidden');
             document.getElementById('uLabel').innerText = me.login;
             document.getElementById('rLabel').innerText = (me.role || '').toUpperCase();
+            refreshAvatarViews();
             setupNav();
             if(me.role==='tech' || me.role==='closer') {
                 document.getElementById('soundHint').innerText = '🔔 звук уведомления включится после первого клика по странице';
@@ -799,6 +942,7 @@ async function login() {
 function getNavItemsByRole(role) {
     const items = {
         admin: [
+            { tab:'profile', icon:'👤', label:'Профиль' },
             { tab:'work', icon:'📞', label:'Обзвон' },
             { tab:'notes', icon:'📝', label:'Заметки' },
             { tab:'create-order', icon:'➕', label:'Создать заявку' },
@@ -815,6 +959,7 @@ function getNavItemsByRole(role) {
             { tab:'callbacks', icon:'🔁', label:'Перезвон' }
         ],
         user: [
+            { tab:'profile', icon:'👤', label:'Профиль' },
             { tab:'work', icon:'📞', label:'Обзвон' },
             { tab:'notes', icon:'📝', label:'Заметки' },
             { tab:'create-order', icon:'➕', label:'Создать заявку' },
@@ -823,6 +968,7 @@ function getNavItemsByRole(role) {
             { tab:'returns', icon:'↩', label:'Возвраты' }
         ],
         tech: [
+            { tab:'profile', icon:'👤', label:'Профиль' },
             { tab:'tech', icon:'🛠', label:'Входящие' },
             { tab:'tech-my', icon:'🧰', label:'Мои техники' },
             { tab:'callbacks', icon:'🔁', label:'Перезвоны' },
@@ -832,12 +978,14 @@ function getNavItemsByRole(role) {
             { tab:'returns', icon:'↩', label:'Возвраты' }
         ],
         closer: [
+            { tab:'profile', icon:'👤', label:'Профиль' },
             { tab:'closer', icon:'✅', label:'Закрыв' },
             { tab:'notes', icon:'📝', label:'Заметки' },
             { tab:'create-order', icon:'➕', label:'Создать заявку' },
             { tab:'kupat', icon:'🏷', label:'Купат' }
         ],
         kupat: [
+            { tab:'profile', icon:'👤', label:'Профиль' },
             { tab:'work', icon:'📞', label:'Обзвон' },
             { tab:'kupat', icon:'🏷', label:'Входящие Купат' },
             { tab:'kupat-my-clients', icon:'👴', label:'Мои клиенты' },
@@ -889,7 +1037,7 @@ async function openTab(name) {
     window._activeTab = name;
     if(name === 'income' && me && me.role !== 'admin') return;
 
-    ['tab-work','tab-create-order','tab-my-orders','tab-notes','tab-callbacks','tab-tech','tab-tech-my','tab-returns','tab-closer','tab-kupat','tab-kupat-my-clients','tab-kupat-my-transfers','tab-income','tab-logs','tab-admin','tab-admin-stats']
+    ['tab-profile','tab-work','tab-create-order','tab-my-orders','tab-notes','tab-callbacks','tab-tech','tab-tech-my','tab-returns','tab-closer','tab-kupat','tab-kupat-my-clients','tab-kupat-my-transfers','tab-income','tab-logs','tab-admin','tab-admin-stats']
         .forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
     
     const showEl = document.getElementById('tab-'+name);
@@ -899,6 +1047,7 @@ async function openTab(name) {
         btn.classList.toggle('active', btn.dataset.tab === name);
     });   
 
+    if(name === 'profile') { await initProfileTab(); }
     if(name === 'notes') { await loadNotes(); }
     if(name === 'callbacks') { await loadCallbacks(); }
     if(name === 'my-orders') { setMyTitle(); loadOrders('my-orders'); }
@@ -1587,6 +1736,7 @@ async function saveTechActionModal(){
       });
       const d = await r.json().catch(()=>({}));
       if(!r.ok || d.success === false) return alert('Не удалось обновить карточку: ' + (d.error || r.status));
+      trackEvent(normalizeProfileAction(status));
       closeTechActionModal();
       await Promise.all([loadOrders('tech'), loadOrders('tech-my'), loadOrders('returns')]);
       return;
@@ -1600,6 +1750,7 @@ async function saveTechActionModal(){
       });
       const d1 = await r1.json().catch(()=>({}));
       if(!r1.ok || d1.success === false) return alert('Не удалось обновить карточку: ' + (d1.error || r1.status));
+      trackEvent(normalizeProfileAction(status));
 
       const r2 = await fetch('/api/callbacks/delete', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -1625,6 +1776,7 @@ async function techTakeInWork(id) {
     });
     const d = await r.json().catch(()=>({}));
     if(!r.ok || d.success === false) return alert('Не удалось взять в работу: ' + (d.error || r.status));
+    trackEvent(normalizeProfileAction('tech_work'));
     await Promise.all([loadOrders('tech'), loadOrders('tech-my')]);
     await openTab('tech-my');
     });
@@ -1671,6 +1823,7 @@ async function moveTechToCallback(id){
     });
     const d2 = await r2.json().catch(()=>({}));
     if(!r2.ok || !d2.success) return alert('Не удалось добавить в перезвон: ' + (d2.error || r2.status));
+    trackEvent(normalizeProfileAction('tech_callback'));
 
     await Promise.all([loadOrders('tech'), loadOrders('tech-my'), loadCallbacks()]);
 }
@@ -1688,10 +1841,12 @@ async function finalOrder(id) {
     let t = prompt("Итог сделки:");
     let c = prompt("Цвет (green, red, yellow)?", "green");
     if(t) {
-        await fetch('/api/orders/final', {
+        const r = await fetch('/api/orders/final', {
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ id, text: t, color: c, closerLogin: me.login })
         });
+        if(!r.ok) return alert('Не удалось закрыть сделку: ' + r.status);
+        trackEvent(normalizeProfileAction('final'));
         loadOrders('closer');
     }
 }
@@ -1716,16 +1871,20 @@ async function kupatAction(id, status) {
         if(err === 'refuse_note_required') return alert('Для отказа нужен комментарий.');
         return alert('Не удалось изменить статус: ' + err);
     }
+    trackEvent(normalizeProfileAction(status));
     await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
     });
 }
 
 async function kupatTakeInWork(id, selectId) {
     const assignee = document.getElementById(selectId)?.value || me.login;
-    await fetch('/api/kupat/action', {
+    const r = await fetch('/api/kupat/action', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ id, status: 'kupat_work', user: assignee, note: 'Взял в работу' })
     });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok || !d.success) return alert('Не удалось взять клиента в работу: ' + (d.error || r.status));
+    trackEvent(normalizeProfileAction('kupat_work'));
     await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
 }
 
@@ -1749,6 +1908,7 @@ async function kupatTakeRefuse(id, selectId) {
         if(err === 'refuse_note_required') return alert('Для отказа нужен комментарий.');
         return alert('Не удалось отправить отказ: ' + err);
     }
+    trackEvent(normalizeProfileAction('kupat_refuse'));
     await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
 }
 
@@ -1815,10 +1975,13 @@ async function kupatFinal(id) {
     let t = prompt("Итог сделки:");
     let c = prompt("Цвет?", "green");
     if(t) {
-        await fetch('/api/kupat/final', {
+        const r = await fetch('/api/kupat/final', {
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ id, text: t, color: c, closer: me.login })
         });
+        const d = await r.json().catch(()=>({}));
+        if(!r.ok || !d.success) return alert('Не удалось завершить клиента: ' + (d.error || r.status));
+        trackEvent(normalizeProfileAction('kupat_final'));
         await Promise.all([loadKupat(), loadKupatMyClients(), loadKupatMyTransfers()]);
     }
 }
