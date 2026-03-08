@@ -882,6 +882,7 @@ app.post('/api/orders/assign', (req, res) => {
 
 app.post('/api/orders/create-direct', (req, res) => {
   const { login, role, clientName, phone, tz, address, age, extra, details } = req.body || {};
+  const { login, role, clientName, phone, tz, address, age, extra, details, callbackAtUtc2 } = req.body || {};
   if (!login || !role) return res.status(400).json({ error: 'bad_request' });
   if (role === 'kupat') return res.status(403).json({ error: 'forbidden' });
   if (!phone) return res.status(400).json({ error: 'phone_required' });
@@ -896,6 +897,13 @@ app.post('/api/orders/create-direct', (req, res) => {
   if (extra) textParts.push(`Доп.Инфа: ${extra}`);
   const fullDetails = textParts.join('\n');
 
+  const selectedCallbackAt = callbackAtUtc2 ? parseUtc2InputToDate(callbackAtUtc2) : null;
+  if (callbackAtUtc2 && !selectedCallbackAt) return res.status(400).json({ error: 'callback_time_invalid' });
+
+  const nowTs = Date.now();
+  const delayedForTech = !!(selectedCallbackAt && (selectedCallbackAt.getTime() - nowTs) > (30 * 60 * 1000));
+  const techAvailableAt = delayedForTech ? selectedCallbackAt : new Date();
+
   const id = Date.now();
   orders.push({
     id,
@@ -906,6 +914,8 @@ app.post('/api/orders/create-direct', (req, res) => {
     details: fullDetails,
     time,
     status: 'new',
+    callbackAtUtc2: String(callbackAtUtc2 || ''),
+    availableAt: formatUtc2DateTime(techAvailableAt),
     tech: null,
     closer: null,
   });
@@ -1171,7 +1181,10 @@ app.get('/api/profile/stats', (req, res) => {
 
   const log = Array.isArray(statsLogCache) ? statsLogCache : [];
   const events = log.filter(e => e && e.login === userLogin && isoDate(e.ts) === day);
-  const labels = ['НДЗ', 'АВТО', 'ПЕРЕДАЛ', 'НА КУПАТ', 'НА БАНК', 'ОТКАЗ', 'ИВРИТ', 'ЗАКРЫЛ', 'ВЗЯЛ В РАБОТУ', 'ПЕРЕЗВОН'];
+  const isTech = String(u.role || '') === 'tech';
+  const labels = isTech
+    ? ['НДЗ', 'ОТКАЗ', 'НА БАНК']
+    : ['НДЗ', 'АВТО', 'ПЕРЕДАЛ', 'НА КУПАТ', 'НА БАНК', 'ОТКАЗ', 'ИВРИТ', 'ЗАКРЫЛ', 'ВЗЯЛ В РАБОТУ', 'ПЕРЕЗВОН'];
   const buckets = Object.fromEntries(labels.map(label => [label, 0]));
 
   for (const e of events) {

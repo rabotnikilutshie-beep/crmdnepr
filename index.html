@@ -167,10 +167,11 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
 @keyframes tabFade{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
 #tab-profile .profile-grid{display:grid; grid-template-columns:minmax(320px,1fr) 320px; gap:14px; align-items:start;}
 #tab-profile .profile-card{background:rgba(13,17,23,0.66); border:1px solid #30363d; border-radius:12px; padding:14px;}
-#tab-profile .chart-wrap{display:flex; align-items:center; justify-content:center; min-height:300px;}
+#tab-profile .chart-wrap{display:flex; align-items:center; justify-content:center; min-height:300px; position:relative;}
 #profileDonut{--donut:conic-gradient(#2f81f7 0deg, #2f81f7 360deg); width:min(420px, 80vw); aspect-ratio:1/1; border-radius:50%; background:var(--donut); position:relative; transition:background .35s ease;}
 #profileDonut::after{content:""; position:absolute; inset:24%; border-radius:50%; background:#0d1117; border:1px solid #30363d;}
 #profileDonutCenter{position:absolute; inset:0; display:grid; place-items:center; z-index:2; text-align:center; font-weight:800; pointer-events:none;}
+#profileDonutTooltip{position:absolute; z-index:3; pointer-events:none; padding:6px 10px; border-radius:8px; border:1px solid #30363d; background:rgba(13,17,23,0.96); color:#e6edf3; font-size:12px; white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,.45); transform:translate(-50%, calc(-100% - 8px));}
 #profileLegend{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; margin-top:12px;}
 .profile-legend-item{display:flex; align-items:center; justify-content:space-between; gap:8px; background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:8px 10px; font-size:13px;}
 .profile-legend-item b{white-space:nowrap;}
@@ -204,7 +205,6 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
   <aside class="sidebar card" id="app-sidebar">
     <div class="sidebar-user">
       <div class="sidebar-avatar-wrap"><img id="sidebarAvatar" class="sidebar-avatar" src="" alt="avatar"></div>
-      <div class="sidebar-avatar-wrap"><img id="sidebarAvatar" class="sidebar-avatar" src="" alt="avatar"></div>
       <div class="sidebar-user-meta">
         <div>👤 <b id="uLabel"></b></div>
         <span class="badge" id="rLabel"></span>
@@ -228,6 +228,7 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
       <div class="chart-wrap">
         <div id="profileDonut">
           <div id="profileDonutCenter">0%</div>
+          <div id="profileDonutTooltip" class="hidden"></div>
         </div>
       </div>
       <div id="profileLegend"></div>
@@ -288,6 +289,17 @@ body.sidebar-collapsed .nav-btn .icon{margin:0;}
       </div>
       <label>Доп. инфа</label>
       <textarea id="co-extra" class="textarea" placeholder="Доп. инфа"></textarea>
+
+      <div class="row">
+        <div class="col">
+          <label>Перезвон (дата, UTC+2)</label>
+          <input id="co-callback-date" type="date">
+        </div>
+        <div class="col">
+          <label>Перезвон (время, UTC+2)</label>
+          <input id="co-callback-time" type="time">
+        </div>
+      </div>
 
       <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
         <button class="btn-purple" onclick="createOrderToTech()">Передать на техника</button>
@@ -483,6 +495,7 @@ async function withActionLock(key, fn) {
 
 
 const PROFILE_COLORS = ['#2f81f7','#3fb950','#e3b341','#d2a8ff','#f778ba','#ff7b72','#58a6ff','#a371f7'];
+let profileDonutSegments = [];
 
 function getAvatarUrl() {
     if (me && me.avatar) return me.avatar;
@@ -519,6 +532,7 @@ function buildDonut(rows, total, day) {
     if (!donut || !center || !legend) return;
 
     const valid = (rows || []).filter(x => Number(x.value || 0) > 0);
+    profileDonutSegments = [];
     if (!total || !valid.length) {
       donut.style.setProperty('--donut', 'conic-gradient(#30363d 0deg, #30363d 360deg)');
       center.innerHTML = '<div><div style="font-size:30px">0</div><div style="font-size:12px; color:#8b949e">Нет нажатий</div></div>';
@@ -533,12 +547,52 @@ function buildDonut(rows, total, day) {
       const next = angle + (pct * 3.6);
       const color = PROFILE_COLORS[i % PROFILE_COLORS.length];
       parts.push(`${color} ${angle.toFixed(2)}deg ${next.toFixed(2)}deg`);
+      profileDonutSegments.push({ start: angle, end: next, label: item.label, value: Number(item.value || 0), color });
       angle = next;
       return `<div class="profile-legend-item"><span style="display:flex; align-items:center; gap:8px;"><span class="profile-dot" style="background:${color}"></span>${escapeHtml(item.label)}</span><b>${pct.toFixed(1)}%</b></div>`;
     }).join('');
 
     donut.style.setProperty('--donut', `conic-gradient(${parts.join(',')})`);
     center.innerHTML = `<div><div style=\"font-size:30px\">${total}</div><div style=\"font-size:12px; color:#8b949e\">Всего нажатий</div><div style=\"font-size:11px; color:#6e7681\">${escapeHtml(day || '')}</div></div>`;
+}
+
+function onProfileDonutHover(ev){
+    const donut = document.getElementById('profileDonut');
+    const tooltip = document.getElementById('profileDonutTooltip');
+    if(!donut || !tooltip || !profileDonutSegments.length) return;
+    const rect = donut.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = ev.clientX - cx;
+    const dy = ev.clientY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const outerR = rect.width / 2;
+    const innerR = outerR * 0.52;
+    if(dist < innerR || dist > outerR){
+      tooltip.classList.add('hidden');
+      return;
+    }
+    const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 450) % 360;
+    const segment = profileDonutSegments.find((s) => angle >= s.start && angle < s.end) || profileDonutSegments[profileDonutSegments.length - 1];
+    if(!segment){
+      tooltip.classList.add('hidden');
+      return;
+    }
+    tooltip.innerHTML = `<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${segment.color}; margin-right:6px;"></span>${escapeHtml(segment.label)}: <b>${segment.value}</b>`;
+    tooltip.style.left = `${ev.clientX - rect.left}px`;
+    tooltip.style.top = `${ev.clientY - rect.top}px`;
+    tooltip.classList.remove('hidden');
+}
+
+function initProfileDonutInteractions(){
+    const donut = document.getElementById('profileDonut');
+    const tooltip = document.getElementById('profileDonutTooltip');
+    if(!donut || donut.dataset.hoverBound === '1') return;
+    donut.dataset.hoverBound = '1';
+    donut.addEventListener('mousemove', onProfileDonutHover);
+    donut.addEventListener('mouseleave', () => {
+      if(tooltip) tooltip.classList.add('hidden');
+    });
 }
 
 async function loadProfileStats() {
@@ -555,6 +609,7 @@ async function initProfileTab() {
     const dateEl = document.getElementById('profileDate');
     if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0,10);
     refreshAvatarViews();
+    initProfileDonutInteractions();
     await loadProfileStats();
 }
 window.uploadAvatar = uploadAvatar;
@@ -2993,6 +3048,8 @@ async function createOrderToTech(){
   const address = (document.getElementById('co-address')?.value || '').trim();
   const age = (document.getElementById('co-age')?.value || '').trim();
   const extra = (document.getElementById('co-extra')?.value || '').trim();
+  const callbackDate = (document.getElementById('co-callback-date')?.value || '').trim();
+  const callbackTime = (document.getElementById('co-callback-time')?.value || '').trim();
 
   if(st) { st.textContent=''; st.classList.remove('err'); }
 
@@ -3003,6 +3060,11 @@ async function createOrderToTech(){
   // Защита: купат не может
   if(me?.role === 'kupat'){
     if(st){ st.textContent='Роль Купат не может создавать заявки'; st.classList.add('err'); }
+    return;
+  }
+
+  if((callbackDate && !callbackTime) || (!callbackDate && callbackTime)){
+    if(st){ st.textContent='Выбери дату и время перезвона полностью'; st.classList.add('err'); }
     return;
   }
 
@@ -3024,7 +3086,8 @@ async function createOrderToTech(){
         address,
         age,
         extra,
-        details
+        details,
+        callbackAtUtc2: callbackDate && callbackTime ? `${callbackDate} ${callbackTime}` : ''
       })
     });
     const j = await r.json().catch(()=>({}));
@@ -3034,9 +3097,8 @@ async function createOrderToTech(){
       return;
     }
     if(st){ st.textContent='Готово! Заявка передана технику.'; st.classList.remove('err'); }
-    trackEvent('ПЕРЕДАЛ', phone, 'СОЗДАТЬ ЗАЯВКУ');
     // очистка
-    ['co-name','co-phone','co-tz','co-address','co-age','co-extra'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['co-name','co-phone','co-tz','co-address','co-age','co-extra','co-callback-date','co-callback-time'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     // обновим техника, если админ/техник
     try{ if(me.role==='tech' || me.role==='admin'){ await loadTech(); } }catch(e){}
   }catch(e){
