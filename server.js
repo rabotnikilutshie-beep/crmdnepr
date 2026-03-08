@@ -881,7 +881,6 @@ app.post('/api/orders/assign', (req, res) => {
 
 
 app.post('/api/orders/create-direct', (req, res) => {
-  const { login, role, clientName, phone, tz, address, age, extra, details } = req.body || {};
   const { login, role, clientName, phone, tz, address, age, extra, details, callbackAtUtc2 } = req.body || {};
   if (!login || !role) return res.status(400).json({ error: 'bad_request' });
   if (role === 'kupat') return res.status(403).json({ error: 'forbidden' });

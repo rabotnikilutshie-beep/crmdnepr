@@ -2,10 +2,11 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>CRM Dnipro</title>
 <style>
     /* Dark Theme Core */
-    body { margin:0; padding:15px; background: radial-gradient(1200px 800px at 20% 10%, #1b2a3a 0%, rgba(27,42,58,0) 60%), radial-gradient(900px 600px at 80% 0%, #2a1b3a 0%, rgba(42,27,58,0) 55%), linear-gradient(135deg, #0b0f14 0%, #0e1117 40%, #070a0f 100%); color:#e6e6e6; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height:100vh; }
+    body { margin:0; padding:15px; background: radial-gradient(1200px 800px at 20% 10%, #1b2a3a 0%, rgba(27,42,58,0) 60%), radial-gradient(900px 600px at 80% 0%, #2a1b3a 0%, rgba(42,27,58,0) 55%), linear-gradient(135deg, #0b0f14 0%, #0e1117 40%, #070a0f 100%); color:#e6e6e6; font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height:100vh; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
 
     body:before { content:""; position:fixed; inset:0; pointer-events:none; background: radial-gradient(900px 500px at 50% -10%, rgba(255,255,255,0.06), rgba(255,255,255,0) 60%); mix-blend-mode: screen; opacity:.45; }
 
@@ -27,7 +28,20 @@
     .btn-blue { background: #2f81f7; }
     .btn-pur { background: #8957e5; }
     .btn-gray { background: #21262d; border: 1px solid #30363d; }
-    
+ 
+
+    button, .nav-btn, .sip-btn, a, [role="button"] { touch-action: manipulation; }
+
+    .order-item, .compact-comment-wrap, .kanban-col {
+      content-visibility: auto;
+      contain-intrinsic-size: 240px;
+    }
+
+    @media (hover:none), (pointer:coarse), (max-width: 900px), (prefers-reduced-motion: reduce) {
+      body:before { display:none; }
+      .card, .order-item, .compact-card, .kanban-col { backdrop-filter:none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+      * { animation:none !important; transition:none !important; }
+    } 
     /* Status Badges & Items */
     .order-item { background: rgba(33,38,45,0.92); padding: 18px; border-radius: 12px; margin-bottom: 12px; border-left: 6px solid #238636; position: relative; min-height: 170px; }
     .order-item.return { border-left-color: #da3633; }
@@ -902,6 +916,25 @@ function playNotify() {
 let _seenTechIds = new Set();
 let _seenCloserIds = new Set();
 let _pollReady = false;
+let incomingPollTimer = null;
+const tabLoadTokens = Object.create(null);
+
+function scheduleNonCritical(fn){
+    if(typeof fn !== 'function') return;
+    if(typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(() => fn(), { timeout: 350 });
+        return;
+    }
+    setTimeout(fn, 0);
+}
+
+function setHtmlIfChanged(el, nextHtml){
+    if(!el) return;
+    const html = String(nextHtml || '');
+    if(el.__cachedHtml === html) return;
+    el.innerHTML = html;
+    el.__cachedHtml = html;
+}
 
 async function pollIncoming() {
     if(!me) return;
@@ -982,7 +1015,8 @@ async function login() {
             wireIncomeInputs();
             setMyTitle();
             pollIncoming();
-            setInterval(pollIncoming, 8000);
+            if(incomingPollTimer) clearInterval(incomingPollTimer);
+            incomingPollTimer = setInterval(pollIncoming, 12000);
         } else {
             // Покажем понятнее, что именно случилось
             if (r.status === 401) { setMsg('Неверный логин/пароль'); }
@@ -1089,33 +1123,44 @@ function setMyTitle() {
 }
 
 async function openTab(name) {
-    window._activeTab = name;
-    if(name === 'income' && me && me.role !== 'admin') return;
+    const tabName = String(name || '');
+    if(window._activeTab === tabName && tabLoadTokens[tabName]) return;
+    window._activeTab = tabName;
+    if(tabName === 'income' && me && me.role !== 'admin') return;
 
     ['tab-profile','tab-work','tab-create-order','tab-my-orders','tab-notes','tab-callbacks','tab-tech','tab-tech-my','tab-returns','tab-closer','tab-kupat','tab-kupat-my-clients','tab-kupat-my-transfers','tab-income','tab-logs','tab-admin','tab-admin-stats']
         .forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
     
-    const showEl = document.getElementById('tab-'+name);
+    const showEl = document.getElementById('tab-'+tabName);
     if(showEl) showEl.classList.remove('hidden');
 
     document.querySelectorAll('#nav-buttons .nav-btn[data-tab]').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === name);
-    });   
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
 
-    if(name === 'profile') { await initProfileTab(); }
-    if(name === 'notes') { await loadNotes(); }
-    if(name === 'callbacks') { await loadCallbacks(); }
-    if(name === 'my-orders') { setMyTitle(); loadOrders('my-orders'); }
-    if(name === 'tech') loadOrders('tech');
-    if(name === 'tech-my') loadOrders('tech-my');
-    if(name === 'returns') loadOrders('returns');
-    if(name === 'closer') loadOrders('closer');
-    if(name === 'kupat') loadKupat();
-    if(name === 'kupat-my-clients') loadKupatMyClients();
-    if(name === 'kupat-my-transfers') loadKupatMyTransfers();
-    if(name === 'income') { /* placeholder */ }
-    if(name === 'logs') loadLogs();
-    if(name === 'admin') { loadStats(); loadDbs(); }    if(name === 'admin-stats') { await loadAdminStats(); }
+    const token = (tabLoadTokens[tabName] || 0) + 1;
+    tabLoadTokens[tabName] = token;
+    const isCurrent = () => window._activeTab === tabName && tabLoadTokens[tabName] === token;
+
+    if(tabName === 'profile') { await initProfileTab(); }
+    if(!isCurrent()) return;
+
+    if(tabName === 'notes') { await loadNotes(); }
+    if(tabName === 'callbacks') { await loadCallbacks(); }
+    if(tabName === 'my-orders') { setMyTitle(); await loadOrders('my-orders'); }
+    if(tabName === 'tech') await loadOrders('tech');
+    if(tabName === 'tech-my') await loadOrders('tech-my');
+    if(tabName === 'returns') await loadOrders('returns');
+    if(tabName === 'closer') await loadOrders('closer');
+    if(tabName === 'kupat') await loadKupat();
+    if(tabName === 'kupat-my-clients') await loadKupatMyClients();
+    if(tabName === 'kupat-my-transfers') await loadKupatMyTransfers();
+    if(tabName === 'income') { /* placeholder */ }
+    if(tabName === 'logs') await loadLogs();
+    if(tabName === 'admin') {
+      scheduleNonCritical(() => { loadStats(); loadDbs(); });
+    }
+    if(tabName === 'admin-stats') { await loadAdminStats(); }
 }
 
 window.openTab = openTab;
@@ -1380,7 +1425,6 @@ function renderCompactClientCard(o, actionsHtml, extraClass='', withOrderComment
     `;
 }
 
-
 function parseUtc2DateTimeToMs(raw){
     const s = String(raw || '').trim();
     const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2})(?::\d{2})?$/);
@@ -1430,27 +1474,27 @@ async function loadOrders(type) {
             { title:'Отказы', items: mine.filter(o => o.status === 'refuse') },
             { title:'Финал', items: mine.filter(o => o.status === 'final') }
         ];
-        document.getElementById(target).innerHTML = renderKanbanBoard(columns, o => renderCompactClientCard(o,
+        setHtmlIfChanged(document.getElementById(target), renderKanbanBoard(columns, o => renderCompactClientCard(o,
           `<button class="btn-blue" onclick="openOrderPreview('my-orders', ${o.id})">Посмотреть полностью</button>`, '', true
-        ));
+        )));
         return;
     }
 
     if(type === 'tech') {
         const items = sorted.filter(o => (o.status === 'new' || o.status === 're-work') && isOrderAvailableForTech(o));
-        document.getElementById(target).innerHTML = renderKanbanBoard([
+        setHtmlIfChanged(document.getElementById(target), renderKanbanBoard([
           { title:'Карточки клиентов', items }
         ], o => renderCompactClientCard(o,
           `<button class="btn-blue" onclick="techTakeInWork(${o.id})">Взять в работу</button>
            <button class="btn-gray" onclick="openOrderPreview('tech', ${o.id})">Посмотреть полностью</button>
            ${me.role === 'admin' ? `<button class="btn-red" title="Удалить карточку" onclick="deleteOrderAsTech(${o.id})">✖</button>` : ''}`, '', true
-        ));
+        )));
         return;
     }
 
     if(type === 'tech-my') {
         const items = sorted.filter(o => o.status === 'tech_work');
-        document.getElementById(target).innerHTML = renderKanbanBoard([
+        setHtmlIfChanged(document.getElementById(target), renderKanbanBoard([
           { title:'Мои техники', items }
         ], o => renderCompactClientCard(o,
           `<button class="btn-yel" onclick="openTechOrderActionModal(${o.id}, 'return')">НДЗ</button>
@@ -1459,30 +1503,30 @@ async function loadOrders(type) {
            <button class="btn-gray" onclick="moveTechToCallback(${o.id})">ПЕРЕЗВОН</button>
            <button class="btn-blue" onclick="openOrderPreview('tech-my', ${o.id})">Посмотреть полностью</button>
            ${me.role === 'admin' ? `<button class="btn-red" title="Удалить карточку" onclick="deleteOrderAsTech(${o.id})">✖</button>` : ''}`, '', true
-        ));
+        )));
         return;
     }
 
     if(type === 'returns') {
         const items = sorted.filter(o => o.status === 'return');
-        document.getElementById(target).innerHTML = renderKanbanBoard([
+        setHtmlIfChanged(document.getElementById(target), renderKanbanBoard([
           { title:'Возвраты', items }
         ], o => renderCompactClientCard(o,
           `${(me.role === 'user' || me.role === 'admin') ? `<button class="btn-blue" onclick="returnToTech(${o.id})">Вернуть технику</button>` : ''}
            <button class="btn-gray" onclick="openOrderPreview('returns', ${o.id})">Посмотреть полностью</button>`, '', true
-        ));
+        )));
         return;
     }
 
     if(type === 'closer') {
         const items = sorted.filter(o => o.status === 'closer' || o.status === 'final');
-        document.getElementById(target).innerHTML = renderKanbanBoard([
+        setHtmlIfChanged(document.getElementById(target), renderKanbanBoard([
           { title:'Закрыв', items }
         ], o => renderCompactClientCard(o,
           `${(me.role === 'closer' || me.role === 'admin') && o.status==='closer' ? `<button class="btn-blue" onclick="finalOrder(${o.id})">ФИНАЛ</button>` : ''}
            ${(me.role === 'closer' || me.role === 'admin') ? `<button class="btn-vio" onclick="addOrderToNotes(${o.id}, 'closer')">В ЗАМЕТКИ</button>` : ''}
            <button class="btn-gray" onclick="openOrderPreview('closer', ${o.id})">Посмотреть полностью</button>`, '', true
-        ));
+        )));
         return;
     }
 }
@@ -1626,13 +1670,13 @@ async function loadKupat() {
         const cols = [
             { title:'Новые от опера', items: sorted.filter(o => o.status === 'kupat_new' || o.status === 'new') }
         ];
-        document.getElementById('list-kupat').innerHTML = renderKanbanBoard(cols, renderIncomingItem);
+        setHtmlIfChanged(document.getElementById('list-kupat'), renderKanbanBoard(cols, renderIncomingItem));
     } else {
         const cols = [
             { title:'Входящие на закрыв', items: sorted.filter(o => o.status === 'kupat_to_closer') },
             { title:'Финал', items: sorted.filter(o => o.status === 'kupat_final') }
         ];
-        document.getElementById('list-kupat').innerHTML = renderKanbanBoard(cols, renderCloserItem);
+        setHtmlIfChanged(document.getElementById('list-kupat'), renderKanbanBoard(cols, renderCloserItem));
     }
 }
 
@@ -1662,12 +1706,12 @@ async function loadKupatMyClients() {
 
     const workBoard = renderKanbanBoard([{ title:'В работе', items: active.slice().reverse() }], renderMine);
     const archiveBoard = renderKanbanBoard([{ title:'Архив', items: archive.slice().reverse() }], renderMine);
-    document.getElementById('list-kupat-my-clients').innerHTML = `
+    setHtmlIfChanged(document.getElementById('list-kupat-my-clients'), `
       <div class="stacked-kanban">
         ${workBoard}
         ${archiveBoard}
       </div>
-    `;
+    `);
 }
 
 
@@ -1701,10 +1745,10 @@ async function loadKupatMyTransfers() {
             ${renderKupatInfoBlock(o)}
         </div>
     `;
-    document.getElementById('list-kupat-my-transfers').innerHTML = renderKanbanBoard([
+    setHtmlIfChanged(document.getElementById('list-kupat-my-transfers'), renderKanbanBoard([
         { title:'В работе', items: inWork.slice().reverse() },
         { title:'Закрыто', items: closed.slice().reverse() }
-    ], renderTransfer);
+    ], renderTransfer));
 }
 
 
